@@ -240,6 +240,7 @@
 
 #include <3dfx.h>
 #include <h3.h>
+#include <glidesys.h>
 #include <fxvid.h>
 #include <cpuid.h>
 

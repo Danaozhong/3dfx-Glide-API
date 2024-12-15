@@ -34,8 +34,7 @@ static XDGAMode *vidModes = 0;
 #include <minihwc.h>
 #include <hwcio.h>
 #include "h3cinit.h"
-#include "glide.h"
-#include "fxglide.h"
+#include "glidesys.h"
 
 
 #define CFG_FILE "/etc/conf.3dfx/voodoo3"

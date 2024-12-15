@@ -75,23 +75,15 @@ char *hwcGetenv (const char *a);
 
 
 /*
- * For linux, we cannot statically initialize gdbg_msgfile
- * to stderr.  In linux, stderr is not constant.  The same
- * would be true of stdout for that matter.  So, we initialize
- * gdbg_msgfile to NULL and then initialize it to stderr
- * below.  There are two dfns here, one for the static dfn
- * and one for the dynamic dfn.  For linux they are different.
- * For Windows they are the same.
+ * We cannot statically initialize gdbg_msgfile
+ * to stderr. In linux, stderr is not constant. The same
+ * would be true of stdout for that matter. So, we initialize
+ * gdbg_msgfile to NULL and then initialize it to stderr/stdout
+ * below.
  */
 #if defined(__linux__) || defined(__FreeBSD__)
-#define	INITIAL_STATIC_GDBG_MSGFILE	NULL
 #define INITIAL_GDBG_MSGFILE		stderr
 #else
-#ifdef NEED_MSGFILE_ASSIGN
-#define	INITIAL_STATIC_GDBG_MSGFILE	NULL
-#else
-#define	INITIAL_STATIC_GDBG_MSGFILE	stdout
-#endif
 #define INITIAL_GDBG_MSGFILE		stdout
 #endif
 
@@ -119,11 +111,11 @@ extern int __cdecl klvfprintf(FILE        *stream,
                               va_list      arg    ) ;
 #endif
 
-static FILE *gdbg_msgfile;	// GDBG info/error file
+static FILE *gdbg_msgfile = NULL;	// GDBG info/error file
 
 #else /* #ifdef KERNEL */
 
-static FILE *gdbg_msgfile = INITIAL_STATIC_GDBG_MSGFILE;	// GDBG info/error file
+static FILE* gdbg_msgfile = NULL;	// GDBG info/error file
 
 
 //----------------------------------------------------------------------
@@ -187,9 +179,7 @@ void gdbg_init_gdbg_msgfile(void)
     static int done=0;			// only execute once
 	if (done)return;
 	done = 1;
-#ifdef NEED_MSGFILE_ASSIGN
     gdbg_msgfile = INITIAL_GDBG_MSGFILE;
-#endif
 }
 
 FX_EXPORT void FX_CSTYLE

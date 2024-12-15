@@ -13,14 +13,14 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Set the configuration for the assembler
 if (${BUILD_32BIT})
     if(MSVC)
-        # Nothing to do - MSVC supports building 32bit using a different cmake invokation
+        # Nothing to do - MSVC supports building 32bit using a different cmake invocation
     else()
         # Set this flag for the compiler and linker
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
         set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -m32")
     endif()
-        
+
     # tell the assembler to generate 32 bit files
     if (WIN32)
         set(CMAKE_ASM_NASM_OBJECT_FORMAT win32)

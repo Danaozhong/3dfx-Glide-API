@@ -758,7 +758,6 @@
 #include <math.h>
 
 #include <3dfx.h>
-#include <glide.h>
 
 #ifdef HWC_EXT_INIT
 #ifdef __WIN32__
@@ -792,7 +791,7 @@
 #include <ddraw.h>
 #include "qmodes.h"
 
-#ifndef GLIDE_BUILD_64BIT
+#ifndef _WIN64
 #if 0 /* moved to asm so we don't need w9x ddk headers. */
 #define IS_32
 #define Not_VxD
@@ -804,7 +803,7 @@ extern DWORD __cdecl CM_Get_DevNode_Key(DWORD,PCHAR,PVOID,ULONG,ULONG);
 #define CM_REGISTRY_HARDWARE 0
 #define CM_REGISTRY_SOFTWARE 1
 #endif
-#endif /* GLIDE_BUILD_64BIT */
+#endif /* _WIN64 */
 
 #endif
 
@@ -1067,8 +1066,10 @@ static void hwc_errncpy(char *dst,const char *src)
  * This was yoinked from sst1/include/sst1init.h, and should be
  * merged back into something if we decide that we need it later.
  */
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(_WIN64)
 #define P6FENCE {_asm xchg eax, fenceVar}
+#elif defined(_MSC_VER)  && defined(_WIN64)
+#define P6FENCE _mm_sfence();
 #elif defined(__POWERPC__) && defined(__MWERKS__)
 #define P6FENCE __sync()
 #elif defined(__DJGPP__) || (defined (__MINGW32__) && !defined(__x86_64__))
@@ -1076,7 +1077,7 @@ static void hwc_errncpy(char *dst,const char *src)
 #elif defined(__GNUC__) && (defined(__i386__) && !defined(__x86_64__))
 #define P6FENCE __asm __volatile ("xchg %%eax, fenceVar":::"%eax")
 #elif defined(__GNUC__) && defined(__x86_64__)
-#define P6FENCE /* TODO Clemens */
+#define P6FENCE asm volatile ("" ::: "memory");
 #elif defined(__GNUC__) && defined(__ia64__)
 # define P6FENCE asm volatile ("mf.a" ::: "memory");
 #elif defined(__GNUC__) && defined(__alpha__)
@@ -1363,7 +1364,7 @@ getRegPath()
       }
     }
   } else {
-  #ifndef GLIDE_BUILD_64BIT
+#ifndef _WIN64
     QDEVNODE QDevNode;
     QIN Qin;
     int status = 0;
@@ -1390,7 +1391,7 @@ getRegPath()
       strcat(strval, "\\glide");
       retVal = strval;
     }
-#endif
+#endif /* _WIN64 */
   }
 
   return retVal;

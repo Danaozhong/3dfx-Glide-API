@@ -2151,7 +2151,7 @@ extern struct _GlideRoot_s GR_CDECL _GlideRoot;
 extern GrGCFuncs _curGCFuncs;
 #endif
 
-#if defined( _MSC_VER)
+#if defined( _MSC_VER) && !defined(_WIN64)
 /* Turn off the no return value warning for the function definition.
  *
  * NB: The function returns a value so that we can use it in places
@@ -2168,6 +2168,8 @@ extern GrGCFuncs _curGCFuncs;
    }
 #  define P6FENCE _grP6Fence()
 #  pragma warning(default : 4035)
+#elif defined( _MSC_VER) && defined(_WIN64)
+#define P6FENCE _mm_sfence()
 #elif defined(macintosh) && defined(__POWERPC__) && defined(__MWERKS__)
 #  define P6FENCE __sync()
 #elif defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
@@ -2314,6 +2316,10 @@ _trisetup_noclip_valid(const void *va, const void *vb, const void *vc );
 #define TRISETUP_ARGB(__cullMode)  TRISETUP_NORGB(__cullMode)
 
 #if defined(_MSC_VER)
+#if defined(_WIN64)
+#define TRISETUP \
+  (*gc->triSetupProc)
+#else /* defined(_WIN64) */
 #if defined(GLIDE_DEBUG) || GLIDE_USE_C_TRISETUP
 /* MSVC6 Debug does funny stuff, so push our parms inline */
 #define TRISETUP(_a, _b, _c) \
@@ -2331,6 +2337,7 @@ _trisetup_noclip_valid(const void *va, const void *vb, const void *vc );
 #define TRISETUP(_a, _b, _c) \
   __asm { mov edx, gc }; \
   ((FxI32 (*)(const void *va, const void *vb, const void *vc, GrGC *gc))*gc->triSetupProc)(_a, _b, _c, gc)
+#endif
 #endif
 
 #elif defined(__POWERPC__)
@@ -2762,7 +2769,12 @@ static __inline unsigned long getThreadValueFast (void)
 }
 
 #else  /* __GNUC__ */
-
+#ifdef _WIN64
+inline unsigned long
+getThreadValueFast() {
+  return (unsigned long)TlsGetValue(_GlideRoot.tlsIndex);
+}
+#else // below is for 32 bit systems
 #pragma warning (4:4035)        /* No return value */
 __inline unsigned long
 getThreadValueFast() {
@@ -2772,7 +2784,7 @@ getThreadValueFast() {
     __asm mov eax, DWORD PTR [eax] 
   }
 }
-
+#endif /* _WIN64 */
 #endif /* __GNUC__ */
 #endif
 
