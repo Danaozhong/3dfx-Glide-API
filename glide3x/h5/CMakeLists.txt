@@ -1,8 +1,8 @@
 set (GLIDE_H5_DIR ${CMAKE_SOURCE_DIR}/glide3x/h5)
 
-set (CINIT_DIR ${GLIDE_H5_DIR}/cinit)
-
-set (MINIHWC_DIR ${GLIDE_H5_DIR}/minihwc)
+add_subdirectory(incsrc)
+add_subdirectory(cinit)
+add_subdirectory(minihwc)
 
 set(GLIDE_SOURCES 
     ${GLIDE_H5_DIR}/glide3/src/fifo.c
@@ -34,7 +34,6 @@ set(GLIDE_SOURCES
 )
 
 
-
 set(GLIDE_SOURCES ${GLIDE_SOURCES} 
     # We always use the C routines for drawing triangles, never the asm or 3dnow ones
     ${GLIDE_H5_DIR}/glide3/src/gxdraw.c
@@ -47,41 +46,17 @@ if(WIN32)
         ${GLIDE_H5_DIR}/glide3/src/gsfc.c
         ${GLIDE_H5_DIR}/glide3/src/winsurf.c
     )
-        
-    set(GLIDE_OUTSIDE_SOURCES ${GLIDE_OUTSIDE_SOURCES}
-        ${MINIHWC_DIR}/hwcio.c
-        ${MINIHWC_DIR}/gdebug.c
-        ${MINIHWC_DIR}/minihwc.c
-        ${MINIHWC_DIR}/win_mode.c
-    )
-    if (${BUILD_32BIT})
-        # This code is anyway only relevant for Win9x, and can be excluded for x64 builds.
-        set (GLIDE_ASM_SOURCES ${GLIDE_ASM_SOURCES}
-            ${MINIHWC_DIR}/win9x.asm
-        )
-    endif()
 else()
     # Linux build
-    set(GLIDE_OUTSIDE_SOURCES ${GLIDE_OUTSIDE_SOURCES}       
-        ${MINIHWC_DIR}/hwcio.c
-        ${MINIHWC_DIR}/gdebug.c
-        
+    set(GLIDE_OUTSIDE_SOURCES ${GLIDE_OUTSIDE_SOURCES}
         ${FXMISC_DIR}/fxos.c
         ${FXMISC_DIR}/fximg.c
     )
     
-
     if (${USE_DRI})
         set(GLIDE_OUTSIDE_SOURCES ${GLIDE_OUTSIDE_SOURCES}
             ${FXMISC_DIR}/linhwc.c
             ${FXMISC_DIR}/linutil.c
-        )
-    else()
-        set(GLIDE_OUTSIDE_SOURCES ${GLIDE_OUTSIDE_SOURCES}
-            ${MINIHWC_DIR}/minihwc.c
-            ${MINIHWC_DIR}/lin_mode.c
-            ${MINIHWC_DIR}/gpio.c
-            ${CINIT_DIR}/h3cinit.c
         )
     endif()
 endif()
@@ -93,18 +68,19 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
     ${GLIDE_SOURCES}
     ${GLIDE_OUTSIDE_SOURCES}
     ${GLIDE_ASM_SOURCES}
-    )
+)
 
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
     ${GLIDE_H5_DIR}/glide3/src
     ${GLIDE_H5_DIR}/incsrc
     ${GLIDE_H5_DIR}/init
-    ${GLIDE_H5_DIR}/minihwc
-    ${CINIT_DIR}
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
     pcilib
+    cinit
+    h3
+    minihwc
 )
 
 if (${EMBED_TEXUS2})
@@ -133,12 +109,9 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
     -DUSE_PACKET_FIFO=1
     -DGLIDE_CHECK_CONTEXT
 
-    # subsystem
-    -DH3
-    -DH4
-    -DFX_GLIDE_H5_CSIM=1
-    -DFX_GLIDE_NAPALM=1
-    
+    # Do not use the ASM routines, but the C triangle setup routines instead, even when building x86
+    -DGLIDE_USE_C_TRISETUP
+
     # other 
     -DGLIDE_PLUG
     -DGLIDE_SPLASH
@@ -156,30 +129,22 @@ if (${BUILD_32BIT})
         -DGL_X86
     )
 else()
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
-        -DGLIDE_BUILD_64BIT
-        # Do not use the ASM routines, but the C triangle setup routines instead
-        -DGLIDE_USE_C_TRISETUP
-    )
-
+    #target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
+    #    -DGLIDE_BUILD_64BIT
+    #)
 endif()
 
 
 if(WIN32)
     # Windows-only defines
     target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
-        -D__WIN32__
         -DFX_DLL_ENABLE
-        -DHWC_ACCESS_DDRAW=1
-        -DHWC_EXT_INIT=1
         -DGLIDE_ALT_TAB=1
 
         -DBETA=1 
-        -DHWC_MINIVDD_HACK=1 
         -DWIN40COMPAT=1 
         -DWINXP_ALT_TAB_FIX=1 
         -DWINXP_SAFER_ALT_TAB_FIX=1 
-        -DNEED_MSGFILE_ASSIGN
     )
     
     # Windows build uses DirectDraw to detect possible screen resolutions and prepare

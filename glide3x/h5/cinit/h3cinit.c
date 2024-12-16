@@ -331,7 +331,8 @@
 */
 
 #include <h3cinit.h>
-#include <h3.h>
+#include <h3regs.h>
+#include <h3defs.h>
 
 #include "h3cinitdd.h"
 
