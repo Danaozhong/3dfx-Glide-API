@@ -1,12 +1,25 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.13)
 
 PROJECT(Glide3x VERSION 1.0 DESCRIPTION "Template solution by Clemens Zangl" LANGUAGES C ASM_NASM)
 
-OPTION(BUILD_32BIT "Build for 32-bit targets (default is x64" OFF)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/../../cmake)
+include(GlideArch)
+include(GlideFxGasm)
+include(GlideWin9x)
+
 OPTION(USE_X86 "Buld for x86 target" ON)
 OPTION(USE_3DNOW "Support 3DNow" OFF)
 
+if (${BUILD_32BIT} AND NOT MSVC)
+    # The flags must also reach the fxgasm header generator, so they are set
+    # globally instead of on the DLL target.
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -m32")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -m32")
+endif()
+
 set (NEWPCI_LIB_DIR ${CMAKE_SOURCE_DIR}/../../swlibs/newpci/pcilib)
+set (GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
 
 set(GLIDE_SOURCES 
     ${CMAKE_SOURCE_DIR}/glide3/src/fifo.c
@@ -99,31 +112,21 @@ else()
     )
 endif()
 
-# Create a shared library 
-add_library(${CMAKE_PROJECT_NAME} SHARED 
-    ${GLIDE_SOURCES}
-    
-    ${GLIDE_OUTSIDE_SOURCES}
-    ${GLIDE_ASM_SOURCE})
+# Compile configuration shared by the DLL and the fxgasm header generator,
+# both have to see the same structure layouts.
+add_library(glide_config INTERFACE)
 
-
-target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
+target_include_directories(glide_config INTERFACE
     ${CMAKE_SOURCE_DIR}/glide3/src
     ${CMAKE_SOURCE_DIR}/incsrc
     ${CMAKE_SOURCE_DIR}/init
     ${CMAKE_SOURCE_DIR}/../../swlibs/fxmisc
     ${CMAKE_SOURCE_DIR}/../../swlibs/newpci/pcilib
     ${CMAKE_SOURCE_DIR}/../../swlibs/fxmemmap
+    ${GENERATED_DIR}
 )
 
-if(MSVC)
-  # disable all warnings for now (too many)
-  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W0)
-else()
-  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-
-target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
+target_compile_definitions(glide_config INTERFACE
     -DDIRECTX 
     -DFX_DLL_ENABLE 
     -D__3Dfx_PCI_CFG__ 
@@ -155,14 +158,33 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
     -DGLIDE_USE_C_TRISETUP
 )
 
-if (${BUILD_32BIT})
-    if(MSVC)
-        set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-    else()
-        set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-    endif()
-    
-    #target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -m32)
+if(WIN32 AND NOT MSVC)
+    # MinGW predefines WINNT, which the Glide sources use for Windows NT
+    # specific code.
+    target_compile_options(glide_config INTERFACE $<$<COMPILE_LANGUAGE:C>:-UWINNT>)
 endif()
 
-#gcc -o fxgasm -Wall -I. -I../../incsrc -I../../init -I../../../swlibs/fxmisc -I../../../swlibs/newpci/pcilib -I../../../swlibs/fxmemmap #-I../../../swlibs/texus2/lib -DGLIDE3 -DGLIDE3_ALPHA -DGLIDE_HW_TRI_SETUP=1 -DGLIDE_PACKED_RGB=0 -DGLIDE_PACKET3_TRI_SETUP=1 -DGLIDE_TRI_CULLING=1# -DUSE_PACKET_FIFO=1 -DGLIDE_DISPATCH_SETUP -DGLIDE_DISPATCH_DOWNLOAD -DGLIDE_CHIP_BROADCAST=1 -DGLIDE_BLIT_CLEAR=1 -DCVG -DGL_MMX -DGL_AMD3D -DGL_X86 -O1 -ffast-math fxgasm.c
+glide_add_fxgasm_headers(fxgasm_headers
+    SOURCE ${CMAKE_SOURCE_DIR}/glide3/src/fxgasm_tool/src/fxgasm.c
+    CONFIG glide_config
+    OUTPUT_DIR ${GENERATED_DIR}
+    GLIDE_SOURCE_DIR ${CMAKE_SOURCE_DIR}/glide3/src
+)
+
+# Create a shared library 
+add_library(${CMAKE_PROJECT_NAME} SHARED 
+    ${GLIDE_SOURCES}
+    
+    ${GLIDE_OUTSIDE_SOURCES}
+    ${GLIDE_ASM_SOURCE})
+
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC glide_config)
+add_dependencies(${CMAKE_PROJECT_NAME} fxgasm_headers)
+glide_check_win9x_compatibility(${CMAKE_PROJECT_NAME})
+
+if(MSVC)
+  # disable all warnings for now (too many)
+  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W0)
+else()
+  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+endif()

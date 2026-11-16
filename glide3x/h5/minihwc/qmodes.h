@@ -395,9 +395,6 @@ typedef struct {
 
 
 #ifdef WINNT
-#include <winnt.h>
-DECLARE_HANDLE(PDEV);
-
 int QueryMode( PDEV *, LPQIN lpQIN, LPVOID lpOutput);
 #else
 int QueryMode(LPQIN lpQIN, LPVOID lpOutput);
