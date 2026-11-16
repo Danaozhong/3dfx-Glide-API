@@ -1,3 +1,4 @@
+include(GlideDll)
 include(GlideFxGasm)
 include(GlideWin9x)
 
@@ -216,18 +217,24 @@ glide_add_fxgasm_headers(fxgasm_headers
     GLIDE_SOURCE_DIR ${GLIDE_H5_DIR}/glide3/src
 )
 
-# Create a shared library 
-add_library(${CMAKE_PROJECT_NAME} SHARED 
+add_library(glide_objects OBJECT
     ${GLIDE_SOURCES}
     ${GLIDE_OUTSIDE_SOURCES}
     ${GLIDE_ASM_SOURCES}
     )
+target_link_libraries(glide_objects PRIVATE
+    glide_config
+    pcilib
+)
+add_dependencies(glide_objects fxgasm_headers)
+
+# Create a shared library 
+glide_add_dll(${CMAKE_PROJECT_NAME} OBJECTS glide_objects OUTPUT_NAME glide3x)
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
     glide_config
     pcilib
 )
-add_dependencies(${CMAKE_PROJECT_NAME} fxgasm_headers)
 glide_check_win9x_compatibility(${CMAKE_PROJECT_NAME})
 
 if (${EMBED_TEXUS2})
@@ -238,9 +245,9 @@ endif()
 
 #if(MSVC)
 #  # disable all warnings for now (too many)
-#  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W0)
+#  target_compile_options(glide_objects PRIVATE /W0)
 #else()
-#  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+#  target_compile_options(glide_objects PRIVATE -Wall -Wextra -Wpedantic)
 #endif()
 
 if(WIN32)

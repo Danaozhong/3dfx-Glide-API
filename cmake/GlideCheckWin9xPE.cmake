@@ -1,7 +1,10 @@
 # cmake -DOBJDUMP=<objdump> -DBINARY=<exe or dll> -P GlideCheckWin9xPE.cmake
 #
 # Fails if the PE header or the imported DLLs prevent Windows 9x from loading
-# BINARY.
+# BINARY, or if Glide functions are not exported with the names programs
+# built with MSVC import.
+
+cmake_minimum_required(VERSION 3.13)
 
 execute_process(
     COMMAND ${OBJDUMP} -p ${BINARY}
@@ -34,9 +37,23 @@ foreach(import IN LISTS imports)
     endif()
 endforeach()
 
+# Programs built with MSVC import the __stdcall functions as _name@N.
+string(REGEX MATCHALL "\n\t\\[ *[0-9]+\\] [^\r\n]+" export_lines "${headers}")
+set(exports "")
+foreach(line IN LISTS export_lines)
+    string(REGEX REPLACE "^\n\t\\[ *[0-9]+\\] " "" name "${line}")
+    string(STRIP "${name}" name)
+    list(APPEND exports "${name}")
+endforeach()
+foreach(name IN LISTS exports)
+    if(name MATCHES "^[A-Za-z].*@[0-9]+$" AND NOT "_${name}" IN_LIST exports)
+        list(APPEND problems "exports ${name}, but not the MSVC name _${name}")
+    endif()
+endforeach()
+
 if(problems)
     list(JOIN problems "\n  " details)
     message(FATAL_ERROR
-        "${BINARY} can not be loaded by Windows 9x:\n  ${details}\n"
+        "${BINARY} is not compatible with Windows 9x Glide applications:\n  ${details}\n"
         "Build with mingw-w64-x86_32.cmake, or disable this check with -DGLIDE_CHECK_WIN9X=OFF.")
 endif()
