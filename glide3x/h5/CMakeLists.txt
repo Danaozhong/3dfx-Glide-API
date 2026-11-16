@@ -1,8 +1,13 @@
+include(GlideFxGasm)
+include(GlideWin9x)
+
 set (GLIDE_H5_DIR ${CMAKE_SOURCE_DIR}/glide3x/h5)
 
 set (CINIT_DIR ${GLIDE_H5_DIR}/cinit)
 
 set (MINIHWC_DIR ${GLIDE_H5_DIR}/minihwc)
+
+set (GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
 
 set(GLIDE_SOURCES 
     ${GLIDE_H5_DIR}/glide3/src/fifo.c
@@ -86,42 +91,27 @@ else()
     endif()
 endif()
 
+# Compile configuration shared by the DLL and the fxgasm header generator,
+# both have to see the same structure layouts.
+add_library(glide_config INTERFACE)
 
-
-# Create a shared library 
-add_library(${CMAKE_PROJECT_NAME} SHARED 
-    ${GLIDE_SOURCES}
-    ${GLIDE_OUTSIDE_SOURCES}
-    ${GLIDE_ASM_SOURCES}
-    )
-
-target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
+target_include_directories(glide_config INTERFACE
     ${GLIDE_H5_DIR}/glide3/src
     ${GLIDE_H5_DIR}/incsrc
     ${GLIDE_H5_DIR}/init
     ${GLIDE_H5_DIR}/minihwc
     ${CINIT_DIR}
+    ${CMAKE_SOURCE_DIR}/swlibs/newpci/pcilib
+    ${GENERATED_DIR}
 )
 
-target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
-    pcilib
+target_link_libraries(glide_config INTERFACE
+    glide_common
+    fxmisc
+    fxmemmap
 )
 
-if (${EMBED_TEXUS2})
-    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
-        texus2
-    )
-endif()
-
-#if(MSVC)
-#  # disable all warnings for now (too many)
-#  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W0)
-#else()
-#  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
-#endif()
-
-
-target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
+target_compile_definitions(glide_config INTERFACE
     # general
     -DGLIDE3 
     -DGLIDE3_ALPHA 
@@ -148,26 +138,24 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
     #-DGL_SSE
     #-DGL_SSE2
     #-DGL_X86
+
+    # Do not use the ASM routines, but the C triangle setup routines instead.
+    # GL_X86 would additionally require the CPU detection and FPU precision
+    # routines from cpudtect.asm.
+    -DGLIDE_USE_C_TRISETUP
 )
 
 
-if (${BUILD_32BIT})
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
-        -DGL_X86
-    )
-else()
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
+if (NOT ${BUILD_32BIT})
+    target_compile_definitions(glide_config INTERFACE
         -DGLIDE_BUILD_64BIT
-        # Do not use the ASM routines, but the C triangle setup routines instead
-        -DGLIDE_USE_C_TRISETUP
     )
-
 endif()
 
 
 if(WIN32)
     # Windows-only defines
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
+    target_compile_definitions(glide_config INTERFACE
         -D__WIN32__
         -DFX_DLL_ENABLE
         -DHWC_ACCESS_DDRAW=1
@@ -181,16 +169,14 @@ if(WIN32)
         -DWINXP_SAFER_ALT_TAB_FIX=1 
         -DNEED_MSGFILE_ASSIGN
     )
-    
-    # Windows build uses DirectDraw to detect possible screen resolutions and prepare
-    # the context, therefore we need to link the DirectDraw libs.
-    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
-        dxguid.lib
-        ddraw.lib
-    )
+    if(NOT MSVC)
+        # MinGW predefines WINNT, which the Glide sources use for Windows NT
+        # specific code.
+        target_compile_options(glide_config INTERFACE $<$<COMPILE_LANGUAGE:C>:-UWINNT>)
+    endif()
 else()
     # Linux defines
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
+    target_compile_definitions(glide_config INTERFACE
         -D__linux__
     )
 
@@ -199,7 +185,7 @@ endif()
 
 # Additional debug logs when building debug variant
 if(CMAKE_BUILD_TYPE MATCHES DEBUG)
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
+    target_compile_definitions(glide_config INTERFACE
         -DGDBG_INFO_ON 
         -DGLIDE_DEBUG
         -DGLIDE_SANITY_ASSERT
@@ -213,12 +199,55 @@ if(WIN32)
     # All attributes starting with "_NASM" are needed to be able to build the asm sources correctly.
     # The *.asm files contain os-specific sections, that are switched using the defines below.
     # NASM does not provide any _WIN32 or unix defines, so we have to add them ourselves.
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
+    target_compile_definitions(glide_config INTERFACE
         _NASM_BUILD_FOR_WIN32
     )
     
 else()
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
+    target_compile_definitions(glide_config INTERFACE
         _NASM_BUILD_FOR_LINUX
+    )
+endif()
+
+glide_add_fxgasm_headers(fxgasm_headers
+    SOURCE ${GLIDE_H5_DIR}/glide3/src/fxgasm_tool/src/fxgasm.c
+    CONFIG glide_config
+    OUTPUT_DIR ${GENERATED_DIR}
+    GLIDE_SOURCE_DIR ${GLIDE_H5_DIR}/glide3/src
+)
+
+# Create a shared library 
+add_library(${CMAKE_PROJECT_NAME} SHARED 
+    ${GLIDE_SOURCES}
+    ${GLIDE_OUTSIDE_SOURCES}
+    ${GLIDE_ASM_SOURCES}
+    )
+
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
+    glide_config
+    pcilib
+)
+add_dependencies(${CMAKE_PROJECT_NAME} fxgasm_headers)
+glide_check_win9x_compatibility(${CMAKE_PROJECT_NAME})
+
+if (${EMBED_TEXUS2})
+    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
+        texus2
+    )
+endif()
+
+#if(MSVC)
+#  # disable all warnings for now (too many)
+#  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W0)
+#else()
+#  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+#endif()
+
+if(WIN32)
+    # Windows build uses DirectDraw to detect possible screen resolutions and prepare
+    # the context, therefore we need to link the DirectDraw libs.
+    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
+        dxguid.lib
+        ddraw.lib
     )
 endif()

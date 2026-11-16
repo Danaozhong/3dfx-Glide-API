@@ -53,7 +53,7 @@
 #ifndef HWCEXT_H
 #define HWCEXT_H
 
-#if/*!defined( WINNT ) && */ !defined( __linux__ )
+#if !defined( WINNT ) && !defined( __linux__ )
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

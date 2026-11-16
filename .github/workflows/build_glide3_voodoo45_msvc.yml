@@ -24,20 +24,6 @@ jobs:
       run: |
         mkdir ${{ github.workspace }}/artifacts
         
-    - name: Generate FXGasm Tool
-      working-directory: "glide3x/h5/glide3/src/"
-      run: |
-        mkdir fxgasm_tool/bin
-        cd fxgasm_tool/bin
-        cmake -DCMAKE_GENERATOR_PLATFORM=Win32 ..
-        cmake --build .
-        
-    - name: Generate Header Files
-      working-directory: "glide3x/h5/glide3/src/"
-      run: |
-        ./fxgasm_tool/bin/Debug/fxgasm.exe -inline > fxinline.h
-        ./fxgasm_tool/bin/Debug/fxgasm.exe -hex > fxgasm.h
-
     - name: Generate Fx Build Number Tool
       working-directory: "glide3x/h5/glide3/src/"
       run: |
@@ -62,7 +48,7 @@ jobs:
       run: |
         mkdir bin_win_x32
         cd bin_win_x32
-        cmake -DCMAKE_GENERATOR_PLATFORM=Win32 ..
+        cmake -A Win32 -DBUILD_32BIT=ON ..
         cmake --build . --config ${{ matrix.build_type }}
         
     - name: Upload Built Glide3x Library

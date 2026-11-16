@@ -890,8 +890,6 @@ typedef struct hwcExt2Result_s {
  *   This will need changing if one driver supports multiple boards.
  *
  */
-#include <winnt.h>
-DECLARE_HANDLE(DHPDEV);
 
 #ifdef ENABLE_V3_W2K_GLIDE_CHANGES
 #define _GLIDE_TOTAL_COMMAND_FIFOS 0x02
@@ -913,7 +911,7 @@ typedef struct
 #endif
 
 #if (_WIN32_WINNT >= 0x0500)
-    DHPDEV      *ppdev;
+    PDEV        *ppdev;
     ULONG       contextDWORDNTIndex;
     ULONG       fifoType;
     ULONG       lastFifoOffset;

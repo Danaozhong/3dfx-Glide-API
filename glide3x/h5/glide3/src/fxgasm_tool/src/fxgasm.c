@@ -30,29 +30,7 @@
 #include <glide.h>
 #include "fxglide.h"
 
-/*----------------------------------------------------------------------
- * macros for creating assembler offset files
- *----------------------------------------------------------------------*/
-
-#define NEWLINE printf("\n")
-#define COMMENT printf(";----------------------------------------------------------------------\n")
-
-#define HEADER(str)     NEWLINE; COMMENT; \
-                        printf("; Assembler offsets for %s struct\n",str);\
-                        COMMENT; NEWLINE
-
-#define OFFSET(p,o,pname) if (hex) \
-        printf("%s\tequ %08xh\n",pname,((int)&p.o)-(int)&p); \
-    else printf("%s\tequ %10d\n",pname,((int)&p.o)-(int)&p)
-
-#define OFFSET2(p,o,pname) if (hex) \
-        printf("%s\tequ %08xh\n",pname,((int)&o)-(int)&p); \
-    else printf("%s\tequ %10d\n",pname,((int)&o)-(int)&p)
-
-#define SIZEOF(p,pname) if (hex) \
-        printf("SIZEOF_%s\tequ %08lxh\n",pname,(unsigned long)sizeof(p)); \
-    else printf("SIZEOF_%s\tequ %10lu\n",pname,(unsigned long)sizeof(p))
-
+#include "fxgasm_emit.h"
 
 int
 main (int argc, char **argv)
@@ -70,25 +48,26 @@ main (int argc, char **argv)
       if (strcmp("-inline", argv[1]) == 0) {
         SstRegs dummyRegs = { 0x00UL }; /* silence VC6 */
 
-        printf("#ifndef __FX_INLINE_H__\n");
-        printf("#define __FX_INLINE_H__\n");
-        printf("\n");
+        INLINE_TEXT("#ifndef __FX_INLINE_H__");
+        INLINE_TEXT("#define __FX_INLINE_H__");
+        INLINE_TEXT("");
 
-        printf("#define kTriProcOffset 0x%lXUL\n",
-               (unsigned long)offsetof(struct GrGC_s, triSetupProc));
+        INLINE_DEFINE("kTriProcOffset",
+                      offsetof(struct GrGC_s, triSetupProc), "UL");
 
-        printf("/* The # of 2-byte entries in the hw fog table */\n");
-        printf("#define kInternalFogTableEntryCount 0x%X\n",
-               (unsigned int)sizeof(dummyRegs.fogTable) >> 1);
+        INLINE_TEXT("/* The # of 2-byte entries in the hw fog table */");
+        INLINE_DEFINE("kInternalFogTableEntryCount",
+                      sizeof(dummyRegs.fogTable) >> 1, "");
 
-        printf("#define kTLSOffset 0x%lXUL\n",
-               (unsigned long)offsetof(struct _GlideRoot_s, tlsOffset));
+        INLINE_DEFINE("kTLSOffset",
+                      offsetof(struct _GlideRoot_s, tlsOffset), "UL");
 
-        printf("#define kLostContextOffset 0x%lxUL\n",
-               (unsigned long)offsetof(GrGC, lostContext));
+        INLINE_DEFINE("kLostContextOffset",
+                      offsetof(GrGC, lostContext), "UL");
 
-        printf("\n");
-        printf("#endif /* __FX_INLINE_H__ */\n");
+        INLINE_TEXT("");
+        INLINE_TEXT("#endif /* __FX_INLINE_H__ */");
+        INLINE_DONE();
 
         return 0;
       }
@@ -218,5 +197,6 @@ main (int argc, char **argv)
     NEWLINE;
 #endif /* !GLIDE_HW_TRI_SETUP */
 
+    FXGASM_DONE();
     return 0;
 }

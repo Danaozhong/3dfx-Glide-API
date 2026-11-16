@@ -31,20 +31,6 @@ jobs:
       run: |
         mkdir -p ${{ github.workspace }}/artifacts
         
-    - name: Generate FXGasm Tool
-      working-directory: "glide3x/cvg/glide3/src/"
-      run: |
-        mkdir -p fxgasm_tool/bin
-        cd fxgasm_tool/bin
-        cmake ..
-        cmake --build .
-        
-    - name: Generate Header Files
-      working-directory: "glide3x/cvg/glide3/src/"
-      run: |
-        ./fxgasm_tool/bin/fxgasm -inline > fxinline.h
-        ./fxgasm_tool/bin/fxgasm -hex > fxgasm.h
-
     - name: Generate Glide3x Dynamic Link Library (Linux, x64)
       run: |
         mkdir bin_x64
@@ -66,12 +52,24 @@ jobs:
         cmake -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_64.cmake -DCMAKE_INSTALL_PREFIX=../prefix-64 ..
         cmake --build .
 
+    - name: Show PE Headers and Imports of Glide3x DLL (Windows, x64)
+      run: |
+        for dll in bin_win_x64/*.dll; do
+          x86_64-w64-mingw32-objdump -p "$dll"
+        done
+
     - name: Generate Glide3x Dynamic Link Library (Windows, x32)
       run: |
         mkdir bin_win_x32
         cd bin_win_x32
-        cmake -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_32.cmake -DCMAKE_INSTALL_PREFIX=../prefix-64 ..
+        cmake -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_32.cmake -DBUILD_32BIT=ON -DCMAKE_INSTALL_PREFIX=../prefix-32 ..
         cmake --build .
+
+    - name: Show PE Headers and Imports of Glide3x DLL (Windows, x32)
+      run: |
+        for dll in bin_win_x32/*.dll; do
+          i686-w64-mingw32-objdump -p "$dll"
+        done
         
     - name: Upload Built Glide3x Library
       uses: actions/upload-artifact@v4
