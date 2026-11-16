@@ -4,6 +4,7 @@ PROJECT(Glide3x VERSION 1.0 DESCRIPTION "Template solution by Clemens Zangl" LAN
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/../../cmake)
 include(GlideArch)
+include(GlideDll)
 include(GlideFxGasm)
 include(GlideWin9x)
 
@@ -171,20 +172,23 @@ glide_add_fxgasm_headers(fxgasm_headers
     GLIDE_SOURCE_DIR ${CMAKE_SOURCE_DIR}/glide3/src
 )
 
-# Create a shared library 
-add_library(${CMAKE_PROJECT_NAME} SHARED 
+add_library(glide_objects OBJECT
     ${GLIDE_SOURCES}
     
     ${GLIDE_OUTSIDE_SOURCES}
     ${GLIDE_ASM_SOURCE})
+target_link_libraries(glide_objects PRIVATE glide_config)
+add_dependencies(glide_objects fxgasm_headers)
+
+# Create a shared library 
+glide_add_dll(${CMAKE_PROJECT_NAME} OBJECTS glide_objects OUTPUT_NAME glide3x)
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC glide_config)
-add_dependencies(${CMAKE_PROJECT_NAME} fxgasm_headers)
 glide_check_win9x_compatibility(${CMAKE_PROJECT_NAME})
 
 if(MSVC)
   # disable all warnings for now (too many)
-  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W0)
+  target_compile_options(glide_objects PRIVATE /W0)
 else()
-  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_options(glide_objects PRIVATE -Wall -Wextra -Wpedantic)
 endif()
