@@ -596,8 +596,6 @@ _grDrawPoints(FxI32 mode, FxI32 count, void *pointers)
             GDBG_INFO_MORE( gc->myLevel, 
                  "value = %x\n",
                  *(packetPtr-1));  // if color, format is BGRA
-                 if ((*(packetPtr-1)&0x00ff0000) >= 0x00800000)
-                     i&=0xfffff;
             dataElem++;
             i = gc->tsuDataList[dataElem];
           }
