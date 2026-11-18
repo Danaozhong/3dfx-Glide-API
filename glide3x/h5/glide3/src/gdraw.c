@@ -446,7 +446,14 @@ _grDrawPoints(FxI32 mode, FxI32 count, void *pointers)
     stride = sizeof(float *) / sizeof (float);
 
   if (gc->state.grCoordinateSpaceArgs.coordinate_space_mode == GR_WINDOW_COORDS) {
+    /*
+     * Each point is drawn as a 4 vertex triangle strip around the pixel
+     * that contains it. All vertices carry the point's parameters, so the
+     * pixel gets the point's color, depth and texture coordinates.
+     */
     while (count > 0) {
+      /* 1.5 * 2^23: floats in [2^23, 2^24) are spaced exactly 1.0 apart,
+       * so adding this bias rounds any coordinate below 2^22 to an integer. */
       float lbias = (float)( 3 << 22);
       float *vPtr;
       FxI32 k, i;
@@ -467,27 +474,40 @@ _grDrawPoints(FxI32 mode, FxI32 count, void *pointers)
                        FARRAY(vPtr,gc->state.vData.vertexInfo.offset + 4));
 
         {
+          /* volatile forces every assignment to be stored as a 32-bit
+           * float. Without it, an x87 FPU could keep the sums below in 80-bit
+           * registers, the bias would cancel out exactly and no rounding
+           * would happen. */
           volatile float x, y;
           FxU32 dataElem;
 
           DA_CONT(kSetupStrip | kSetupCullDisable, gc->cmdTransportInfo.paramMask, 
                          4, -1/*NOT USED*//*gc->state.vData.vSize * 3*/, SSTCP_PKT3_BDDDDD);
 
+          /* Round (coordinate + 0.5) to an integer X, Y: the bottom right
+           * corner of the pixel containing the point. This relies on the
+           * FPU's default round-to-nearest mode. */
           x = FARRAY(vPtr, gc->state.vData.vertexInfo.offset) + 0.5f;
           y = FARRAY(vPtr, gc->state.vData.vertexInfo.offset + 4) + 0.5f;
 
           x += lbias;
           y += lbias;
 
-          /* Convert to 32-bit representation */
           gc->pool.temp1.f = (const float)x;
           gc->pool.temp2.f = (const float)y;
 
-          /* Correct the bias to get rid of the fractional bits */
-          x = /*(volatile float)*/gc->pool.temp1.f - lbias;
-          y = /*(volatile float)*/gc->pool.temp2.f - lbias;
+          x = gc->pool.temp1.f - lbias;
+          y = gc->pool.temp2.f - lbias;
 
-          /* Lower right corner */
+          /*
+           * Strip vertices (X, Y), (X, Y-1), (X-1, Y), (X-1, Y+1). The two
+           * triangles share the edge from (X, Y-1) to (X-1, Y), which runs
+           * through the center of pixel (X-1, Y-1). No other pixel center
+           * lies inside the strip, so the rasterizer's fill rule draws
+           * exactly that one pixel.
+           */
+
+          /* (X, Y) */
           DA_SETF(x);
           DA_SETF(y);
           dataElem = 0;
@@ -501,7 +521,7 @@ _grDrawPoints(FxI32 mode, FxI32 count, void *pointers)
             i = gc->tsuDataList[dataElem];
           }
 
-          /* Upper right corner */
+          /* (X, Y-1) */
           y -= 1.0f;
           DA_SETF(x);
           DA_SETF(y);
@@ -513,7 +533,7 @@ _grDrawPoints(FxI32 mode, FxI32 count, void *pointers)
             i = gc->tsuDataList[dataElem];
           }
 
-          /* Lower left corner */
+          /* (X-1, Y) */
           y += 1.0f;
           x -= 1.0f;
           DA_SETF(x);
@@ -526,7 +546,7 @@ _grDrawPoints(FxI32 mode, FxI32 count, void *pointers)
             i = gc->tsuDataList[dataElem];
           }
 
-          /* Upper leftcorner */
+          /* (X-1, Y+1) */
           y += 1.0f;
           DA_SETF(x);
           DA_SETF(y);
