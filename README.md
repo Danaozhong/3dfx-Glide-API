@@ -29,8 +29,8 @@ The libraries are tested under Linux, using the mingw-w64 cross-platform compile
 The Glide API comes in two versions, Glide2x and Glide3x. Both versions have different libraries for the video card series they are supporting:
 * sst1 is for Voodoo1 cards
 * cvg is for Voodoo2 cards
-* h3 is for Voodoo3/Velocity cards
-* h5 (Glide3x only) is for Voodoo4/5 cards
+* h3 (Glide2x only) is for Voodoo Banshee/Voodoo3/Velocity cards
+* h5 (Glide3x only) is for Voodoo Banshee/Voodoo3/Velocity and Voodoo4/5 cards
 
 The simplest way to build the libraries is to use the provided docker container, and refer at the build steps of the Github actions.
 
