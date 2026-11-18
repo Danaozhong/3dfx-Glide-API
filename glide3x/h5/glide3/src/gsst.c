@@ -1438,6 +1438,7 @@ GR_EXT_ENTRY(grSstWinOpenExt, GrContext_t, ( FxU32                   hWnd,
   hwcVidInfo    *vInfo   = 0;
   hwcBufferInfo *bufInfo = 0;
   hwcFifoInfo   *fInfo   = 0;
+  FxU32         hwPixelFormat;
 
 #endif /* defined ( GLIDE_INIT_HAL ) */
   int            buffer;

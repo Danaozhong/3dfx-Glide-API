@@ -1,0 +1,85 @@
+name: Build Glide3x for Voodoo4/5 Library (HAL_CSIM, chip simulator stub)
+
+# Builds Glide3x with HAL_CSIM, where the hardware is accessed through the
+# chip simulator interface instead of minihwc. The simulator is replaced by a
+# stub (swlibs/csim), so the library can be built, but finds no boards.
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build_csim:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+    container:
+      image: 'danaozhong/3dfx_glide_dev_env_linux_x64:latest'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Generate Fx Build Number Tool
+      working-directory: "glide3x/h5/glide3/src/"
+      run: |
+        mkdir -p fxbldno_tool/bin
+        cd fxbldno_tool/bin
+        cmake ..
+        cmake --build .
+
+    - name: Generate Build Number Header Files
+      working-directory: "glide3x/h5/glide3/src/"
+      run: |
+        ./fxbldno_tool/bin/fxbldno  > fxbldno.h
+
+    - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Linux, x64)
+      run: |
+        mkdir bin_csim_x64
+        cd bin_csim_x64
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON ..
+        cmake --build .
+
+    - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Linux, x32)
+      run: |
+        mkdir bin_csim_x32
+        cd bin_csim_x32
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DBUILD_32BIT=ON ..
+        cmake --build .
+
+    - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Windows, GCC cross compile, x64)
+      run: |
+        mkdir bin_csim_win_x64
+        cd bin_csim_win_x64
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_64.cmake ..
+        cmake --build .
+
+    - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Windows, GCC cross compile, x32)
+      run: |
+        mkdir bin_csim_win_x32
+        cd bin_csim_win_x32
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DBUILD_32BIT=ON -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_32.cmake ..
+        cmake --build .
+
+    - name: Check that the simulator interface is used
+      run: |
+        for lib in bin_csim_x64/glide3x/h5/libglide3x_csim.so bin_csim_x32/glide3x/h5/libglide3x_csim.so; do
+          test -f "$lib"
+          nm -D "$lib" | grep -w csimInit
+          nm -D "$lib" | grep -w fxHalInit
+          nm -D "$lib" | grep -w halStore32
+        done
+
+    - name: Upload Built Glide3x Library
+      uses: actions/upload-artifact@v4
+      with:
+        name: gcc_glide3x_voodoo45_csim_${{ matrix.build_type }}
+        path: |
+            bin_csim_x32/glide3x/h5/*.so
+            bin_csim_x64/glide3x/h5/*.so
+            bin_csim_win_x64/glide3x/h5/*.dll
+            bin_csim_win_x32/glide3x/h5/*.dll

@@ -117,7 +117,6 @@ target_compile_definitions(glide_config INTERFACE
     -DGLIDE3 
     -DGLIDE3_ALPHA 
     -DGLIDE_HW_TRI_SETUP=1 
-    -DGLIDE_INIT_HWC 
     -DGLIDE_PACKED_RGB=0 
     -DGLIDE_PACKET3_TRI_SETUP=1 
     -DGLIDE_TRI_CULLING=1 
@@ -149,6 +148,21 @@ target_compile_definitions(glide_config INTERFACE
 if (NOT ${BUILD_32BIT})
     target_compile_definitions(glide_config INTERFACE
         -DGLIDE_BUILD_64BIT
+    )
+endif()
+
+if(BUILD_HAL_CSIM)
+    # The hardware is accessed through the simulator hooks of the HAL
+    # (fxHal*, halLoad*/halStore*), see swlibs/csim.
+    target_compile_definitions(glide_config INTERFACE
+        -DHAL_CSIM=1
+        -DGLIDE_INIT_HAL=1
+    )
+    target_link_libraries(glide_config INTERFACE csim)
+else()
+    # The hardware is accessed through minihwc.
+    target_compile_definitions(glide_config INTERFACE
+        -DGLIDE_INIT_HWC
     )
 endif()
 
@@ -228,7 +242,13 @@ target_link_libraries(glide_objects PRIVATE
 add_dependencies(glide_objects fxgasm_headers)
 
 # Create a shared library 
-glide_add_dll(${CMAKE_PROJECT_NAME} OBJECTS glide_objects OUTPUT_NAME glide3x)
+if(BUILD_HAL_CSIM)
+    # Do not mix it up with the library for real hardware.
+    glide_add_dll(${CMAKE_PROJECT_NAME} OBJECTS glide_objects OUTPUT_NAME glide3x_csim)
+    set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME glide3x_csim)
+else()
+    glide_add_dll(${CMAKE_PROJECT_NAME} OBJECTS glide_objects OUTPUT_NAME glide3x)
+endif()
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
     glide_config

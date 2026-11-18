@@ -77,7 +77,9 @@ n** -----------------------------------------------------------------------
 #define GLIDE_OS_OS2            0x10
 #define GLIDE_OS_OTHER          0x40 /* For Proprietary Arcade HW */
 
+/* Sim vs. Hardware is stored in bits [7:8] */
 #define GLIDE_SST_SHIFT         7
+#define GLIDE_SST_SIM           (0x1 << GLIDE_SST_SHIFT)
 #define GLIDE_SST_HW            (0x2 << GLIDE_SST_SHIFT)
 
 /* Hardware Type is stored in bits [9:13] */
@@ -117,7 +119,12 @@ n** -----------------------------------------------------------------------
 #error "Unknown OS"
 #endif
 
-#define GLIDE_SST       GLIDE_SST_HW
+/* Check for Simulator vs. Hardware */
+#if HAL_CSIM || HWC_CSIM
+#  define GLIDE_SST       GLIDE_SST_SIM
+#else
+#  define GLIDE_SST       GLIDE_SST_HW
+#endif
 
 
 /* Check for type of hardware */

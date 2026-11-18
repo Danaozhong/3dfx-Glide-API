@@ -8,6 +8,9 @@ include(GlideArch)
 OPTION(USE_DRI "no idea what DRI mode stands for" OFF)
 OPTION(USE_DGA "no idea what DRI mode stands for" OFF)
 OPTION(EMBED_TEXUS2 "Embed Texus2 functions into Glide3" ON)
+OPTION(BUILD_HAL_CSIM
+       "Build Glide3x for Voodoo4/5 against the chip simulator (HAL_CSIM) instead of real hardware. Uses the stub in swlibs/csim."
+       OFF)
 
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
