@@ -34,7 +34,6 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
     # subsystem
     -DH3
     -DH4
-    -DFX_GLIDE_H5_CSIM=1
     -DFX_GLIDE_NAPALM=1
 
     # other 
