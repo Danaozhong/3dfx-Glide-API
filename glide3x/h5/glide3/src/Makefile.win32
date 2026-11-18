@@ -87,7 +87,7 @@ CDEFS += -DH3
 ifdef H4
 CDEFS += -DH4
 endif
-CDEFS += -DFX_GLIDE_H5_CSIM=1 -DFX_GLIDE_NAPALM=1
+CDEFS += -DFX_GLIDE_NAPALM=1
 
 # debug
 ifdef DEBUG

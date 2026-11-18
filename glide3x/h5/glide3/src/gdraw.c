@@ -425,22 +425,6 @@ _grDrawPoints(FxI32 mode, FxI32 count, void *pointers)
    */
   FxI32 stride;
 
-  /* we snap to an integer by adding a large enough number that it
-   * shoves all fraction bits off the right side of the mantissa.
-   *
-   * NB: IEEE rounds to nearest integer by default, but applications
-   * can change the rounding mode so that it is difficult to get the
-   * correct truncation/ceiling operation w/ a simple adjustment to
-   * the bias so we do it all by hand treating the fp # as a
-   * bucket-o-bits.
-   *
-   * NB: The constant kNumMantissaBits defines how many bits of
-   * integer precision a coordinate can have. This needs to be atleast
-   * as large as the maximum hw screen resolution. We later use this
-   * to compute a logical 1 value to fill an entire pixel.  
-   */
-#define kNumMantissaBits 12UL
-
   GR_BEGIN_NOFIFOCHECK(FN_NAME, 90);
 
   GDBG_INFO_MORE(gc->myLevel, "(count = %d, pointers = 0x%x)\n",
@@ -462,89 +446,6 @@ _grDrawPoints(FxI32 mode, FxI32 count, void *pointers)
     stride = sizeof(float *) / sizeof (float);
 
   if (gc->state.grCoordinateSpaceArgs.coordinate_space_mode == GR_WINDOW_COORDS) {
-#ifndef FX_GLIDE_H5_CSIM
-    while (count > 0) {
-      float *vPtr;
-      FxI32 k, i;
-      FxI32 vcount = count >= POINTS_BUFFER ? POINTS_BUFFER : count;
-      GR_SET_EXPECTED_SIZE(((sizeof(FxU32) << 2) +  gc->state.vData.vSize) * vcount, vcount << 1);
-
-      /* begin points routine */
-      DA_BEGIN;
-      
-      for (k = 0; k < vcount; k++) {
-        vPtr = pointers;
-        if (mode) vPtr = *(float **)vPtr;
-        
-        pointers = (float *)pointers + stride;
-        
-        GDBG_INFO_MORE(gc->myLevel, "(%f %f)\n",  
-                       FARRAY(vPtr,gc->state.vData.vertexInfo.offset), 
-                       FARRAY(vPtr,gc->state.vData.vertexInfo.offset + 4));
-        
-        {
-          FxU32 x, y;
-          FxU32 dataElem;
-          const float bias = (const float)(3UL << kNumMantissaBits);
-
-          DA_CONT(kSetupStrip | kSetupCullDisable, 0x00,
-                  0x02, sizeof(FxU32) << 1, SSTCP_PKT3_BDDDDD);
-
-          /* Convert to 32-bit representation */
-          gc->pool.temp1.f = FARRAY(vPtr, gc->state.vData.vertexInfo.offset) + bias;
-          gc->pool.temp2.f = FARRAY(vPtr, gc->state.vData.vertexInfo.offset + 4) + bias;
-
-          /* draw a little triangle, with the lower left corner at pixel center. */
-          
-          /* The approach here is to split the triangle into two packets, one
-           * that sends just the coordinates of the last two points of the
-           * triangle w/ no other parameter information, and then the
-           * centered point w/ all of the parameter information. The first
-           * packet is has a BDD command, but is incomplete, so nothing
-           * draws, the next packet has a DDD command so will complete the
-           * triangle from the first packet sent.
-           */
-
-          /* Mask off the real fractional bits from the mantissa */
-          x = ((gc->pool.temp1.u & (0xFFFFFFFFUL << (22UL - kNumMantissaBits))) +
-               (0x01UL << (22UL - kNumMantissaBits)));
-          y = ((gc->pool.temp2.u & (0xFFFFFFFFUL << (22UL - kNumMantissaBits))) +
-               (0x01UL << (22UL - kNumMantissaBits)));
-
-          /* Lower right corner */
-          DA_SET(x);
-          DA_SET(y);
-
-          /* Upper right corner */
-          y -= (0x01UL << (21UL - kNumMantissaBits));
-          DA_SET(x);
-          dataElem = 0;
-          DA_SET(y);
-
-          /* Upper Left corner */
-          x -= (0x01UL << (21UL - kNumMantissaBits));
-
-          /* Packet w/ actual point coordinate and parameter data */
-          DA_CONT(kSetupStrip | kSetupCullDisable, gc->cmdTransportInfo.paramMask, 
-                         1, gc->state.vData.vSize, SSTCP_PKT3_DDDDDD);
-
-          i = gc->tsuDataList[dataElem];
-          DA_SET(x);
-          DA_SET(y);
-          while (i != GR_DLIST_END) {
-            DA_SET(ARRAY(vPtr, i));
-            dataElem++;
-            i = gc->tsuDataList[dataElem];
-          }
-        }
-      }
-      DA_END;
-      GR_CHECK_SIZE();
-      /* end points routine */
-
-      count -= POINTS_BUFFER;
-    }
-#else
     while (count > 0) {
       float lbias = (float)( 3 << 22);
       float *vPtr;
@@ -644,7 +545,6 @@ _grDrawPoints(FxI32 mode, FxI32 count, void *pointers)
 
       count -= POINTS_BUFFER;
     }
-#endif
   } else {
     /*
      * first cut of clip space coordinate code.
