@@ -519,6 +519,11 @@ struct _GrState_s
     a, r, g, b;                /* Constant color values for Delta0 mode */
 };
 
+/* The public GrState in glide.h is a padded blob that applications use to
+ * save and restore this struct. Fail the build if the pad is too small. */
+typedef char _GrState_pad_is_large_enough
+  [(sizeof(struct _GrState_s) <= GLIDE_STATE_PAD_SIZE) ? 1 : -1];
+
 #if GLIDE_DISPATCH_SETUP
 /* gpci.c 
  *

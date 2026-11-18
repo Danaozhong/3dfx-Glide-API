@@ -463,18 +463,16 @@ typedef FxU32 GrCoordinateSpaceMode_t;
 #define GLIDE3_EXTRA_STATE      0
 #endif
 
-#define GLIDE_STATE_PAD_SIZE 312 + GLIDE3_EXTRA_STATE 
+#define GLIDE_STATE_PAD_SIZE (312 + GLIDE3_EXTRA_STATE)
 
 #ifdef GLIDE_LIB
 typedef struct _GrState_s GrState;
 #else
-/* Clemens get this compiling */
-typedef struct _GrState_s GrState;
-/*
-    typedef struct _GrState_s {
+/* Applications get a complete type of the right size, so that they can
+ * declare a GrState and pass it to grGlideGetState()/grGlideSetState(). */
+typedef struct _GrState_s {
   char pad[GLIDE_STATE_PAD_SIZE];
 } GrState;
-*/
 #endif
 
 #ifdef GLIDE3
