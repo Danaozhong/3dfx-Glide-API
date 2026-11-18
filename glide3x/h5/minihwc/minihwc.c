@@ -1076,7 +1076,7 @@ static void hwc_errncpy(char *dst,const char *src)
 #elif defined(__GNUC__) && (defined(__i386__) && !defined(__x86_64__))
 #define P6FENCE __asm __volatile ("xchg %%eax, fenceVar":::"%eax")
 #elif defined(__GNUC__) && defined(__x86_64__)
-#define P6FENCE /* TODO Clemens */
+#define P6FENCE __asm __volatile ("sfence":::"memory")
 #elif defined(__GNUC__) && defined(__ia64__)
 # define P6FENCE asm volatile ("mf.a" ::: "memory");
 #elif defined(__GNUC__) && defined(__alpha__)
