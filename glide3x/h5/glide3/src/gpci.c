@@ -992,10 +992,10 @@ _grSstDetectResources(void)
         regInitP = FXTRUE;
 
         /* Set up pointers to the various address spaces within the hw */
-        GC.base_ptr  = (FxU32*)SST_BASE_ADDRESS(curDev->physAddr[0]);
+        GC.base_ptr  = (FxU32*)SST_BASE_ADDRESS(devRegs);
         GC.reg_ptr   = (FxU32*)devRegs;
-        GC.lfb_ptr   = (FxU32*)SST_LFB_ADDRESS(curDev->physAddr[0]);
-        GC.tex_ptr   = (FxU32*)SST_TEX_ADDRESS(curDev->physAddr[0]);
+        GC.lfb_ptr   = (FxU32*)SST_LFB_ADDRESS(devRegs);
+        GC.tex_ptr   = (FxU32*)SST_TEX_ADDRESS(devRegs);
         
         GC.sstRegs = devRegs;
         GC.ioRegs = (SstIORegs *) SST_IO_ADDRESS(devRegs);
@@ -1990,7 +1990,7 @@ DllMain(HANDLE hInst, ULONG  ul_reason_for_call, LPVOID lpReserved)
       GR_DCL_GC;
 
       /* If there is no current gc in tls then set the current context. */
-      if (gc == NULL) setThreadValue((unsigned long)&_GlideRoot.GCs[_GlideRoot.current_sst]);
+      if (gc == NULL) setThreadValue((AnyPtr)&_GlideRoot.GCs[_GlideRoot.current_sst]);
     }
     break;
   case DLL_THREAD_DETACH:

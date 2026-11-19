@@ -476,7 +476,7 @@ void p6Fence(void);
 #elif defined(__DJGPP__) || (defined (__MINGW32__) && !defined(__x86_64__))
 #define P6FENCE __asm __volatile ("xchg %%eax, _fenceVar":::"%eax")
 #elif defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
-#define P6FENCE __asm __volatile ("xchg %%eax, fenceVar":::"%eax")
+#define P6FENCE __asm __volatile ("xchg %%eax, %0" : "+m" (fenceVar) : : "%eax")
 #elif defined(__GNUC__) && defined(__ia64__)
 # define P6FENCE asm volatile ("mf.a" ::: "memory");
 #elif defined(__GNUC__) && defined(__alpha__)

@@ -1,15 +1,16 @@
 # Stub of the 3dfx chip simulator, used by the HAL_CSIM build of Glide
 # (see BUILD_HAL_CSIM in the top level CMakeLists.txt).
 #
-# It contains the interface headers and do-nothing implementations. To build
-# against a real simulator, replace the contents of this directory with its
-# csim.h and sources.
+# It contains the interface headers and a fake board that Glide can
+# initialize and send commands to, see include/csim.h. To build against a
+# real simulator, replace the contents of this directory with its csim.h and
+# sources.
 
 add_library(csim STATIC
     src/csim_stub.c
 )
 
-# Consumers need csim.h.
+# Consumers need csim.h, tests csimstats.h.
 target_include_directories(csim PUBLIC include)
 
 # The stub implements the interface declared in fxhal.h of Glide3x, which
@@ -19,6 +20,7 @@ target_include_directories(csim PRIVATE
 )
 target_link_libraries(csim PRIVATE glide_common fxmisc pcilib)
 target_compile_definitions(csim PRIVATE
+    CSIM_BUILD
     HAL_CSIM=1
     GLIDE3
     H3

@@ -12,6 +12,16 @@ OPTION(BUILD_HAL_CSIM
        "Build Glide3x for Voodoo4/5 against the chip simulator (HAL_CSIM) instead of real hardware. Uses the stub in swlibs/csim."
        OFF)
 
+OPTION(GLIDE_BUILD_TESTS
+       "Build the tests in tests/, run them with ctest. Downloads GoogleTest."
+       OFF)
+
+if(GLIDE_BUILD_TESTS)
+    # GoogleTest is C++.
+    enable_language(CXX)
+    enable_testing()
+endif()
+
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -62,3 +72,7 @@ set (TEXUS2_DIR ${CMAKE_SOURCE_DIR}/swlibs/texus2/lib)
 add_subdirectory(common)
 add_subdirectory(swlibs)
 add_subdirectory(glide3x)
+
+if(GLIDE_BUILD_TESTS)
+    add_subdirectory(tests)
+endif()

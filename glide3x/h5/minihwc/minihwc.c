@@ -1067,7 +1067,10 @@ static void hwc_errncpy(char *dst,const char *src)
  * This was yoinked from sst1/include/sst1init.h, and should be
  * merged back into something if we decide that we need it later.
  */
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && defined(_M_X64)
+#include <intrin.h>
+#define P6FENCE _InterlockedExchange((long volatile *)&fenceVar, 0)
+#elif defined(_MSC_VER)
 #define P6FENCE {_asm xchg eax, fenceVar}
 #elif defined(__POWERPC__) && defined(__MWERKS__)
 #define P6FENCE __sync()
@@ -6190,7 +6193,7 @@ hwcAllocAuxRenderingBuffer(hwcBoardInfo *bInfo, hwcBufferDesc *bp, int width,
 } /* hwcAllocAuxRenderingBuffer */
 
 
-static void hwcReadRegion565(hwcBoardInfo *bInfo, FxU32 src, FxU32 src_x, FxU32 src_y, FxU32 src_width, FxU32 src_height, FxU32 strideInBytes, FxU16 *dst, FxU32 renderMask, FxU32 compareMask)
+static void hwcReadRegion565(hwcBoardInfo *bInfo, AnyPtr src, FxU32 src_x, FxU32 src_y, FxU32 src_width, FxU32 src_height, FxU32 strideInBytes, FxU16 *dst, FxU32 renderMask, FxU32 compareMask)
 {
   FxU32 end_x, end_y;
   FxU32 x, y;
@@ -6350,7 +6353,7 @@ static void hwcReadRegion565(hwcBoardInfo *bInfo, FxU32 src, FxU32 src_x, FxU32 
     }
 }
 
-static void hwcReadRegion1555(hwcBoardInfo *bInfo, FxU32 src, FxU32 src_x, FxU32 src_y, FxU32 src_width, FxU32 src_height, FxU32 strideInBytes, FxU16 *dst, FxU32 renderMask, FxU32 compareMask)
+static void hwcReadRegion1555(hwcBoardInfo *bInfo, AnyPtr src, FxU32 src_x, FxU32 src_y, FxU32 src_width, FxU32 src_height, FxU32 strideInBytes, FxU16 *dst, FxU32 renderMask, FxU32 compareMask)
 {
   FxU32 end_x, end_y;
   FxU32 x, y;
@@ -6512,7 +6515,7 @@ static void hwcReadRegion1555(hwcBoardInfo *bInfo, FxU32 src, FxU32 src_x, FxU32
 #ifdef _MSC_VER
 //#pragma optimize("g", off)
 #endif
-static void hwcReadRegion8888(hwcBoardInfo *bInfo, FxU32 src, FxU32 src_x, FxU32 src_y, FxU32 src_width, FxU32 src_height, FxU32 strideInBytes, FxU16 *dst, FxU32 renderMask, FxU32 compareMask)
+static void hwcReadRegion8888(hwcBoardInfo *bInfo, AnyPtr src, FxU32 src_x, FxU32 src_y, FxU32 src_width, FxU32 src_height, FxU32 strideInBytes, FxU16 *dst, FxU32 renderMask, FxU32 compareMask)
 {
   FxU32 end_x, end_y;
   FxU32 x, y;
@@ -6674,7 +6677,7 @@ FxU32 hwcAAReadRegion16(hwcBoardInfo *bInfo, FxU32 colBufNum,
   FxU32 temp, vidProcCfg;
   FxU32 compareMask, renderMask;
   FxU32 lfbMemoryConfig, lfbMemoryConfigTemp;
-  void (*hwcReadRegionFunc)(hwcBoardInfo *bInfo, FxU32 src, FxU32 src_x, FxU32 src_y, FxU32 src_width, FxU32 src_height, FxU32 strideInBytes, FxU16 *dst, FxU32 renderMask, FxU32 compareMask);
+  void (*hwcReadRegionFunc)(hwcBoardInfo *bInfo, AnyPtr src, FxU32 src_x, FxU32 src_y, FxU32 src_width, FxU32 src_height, FxU32 strideInBytes, FxU16 *dst, FxU32 renderMask, FxU32 compareMask);
   
   if(!buffer) return 0;
   

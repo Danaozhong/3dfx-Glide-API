@@ -225,7 +225,7 @@ do { \
 /* NB: This should be used sparingly because it does a 'real' hw read
  * which is *SLOW*.
  */
-unsigned long _grHwFifoPtr(FxBool);
+AnyPtr _grHwFifoPtr(FxBool);
 #define HW_FIFO_PTR(a) _grHwFifoPtr(a)
 
 #if FIFO_ASSERT_FULL
@@ -236,7 +236,7 @@ unsigned long _grHwFifoPtr(FxBool);
 #else /* !FIFO_ASSERT_FULL */
 #define FIFO_ASSERT() \
 ASSERT_FAULT_IMMED((FxU32)gc->cmdTransportInfo.fifoRoom < gc->cmdTransportInfo.fifoSize); \
-ASSERT_FAULT_IMMED((FxU32)gc->cmdTransportInfo.fifoPtr < (FxU32)gc->cmdTransportInfo.fifoEnd)
+ASSERT_FAULT_IMMED(gc->cmdTransportInfo.fifoPtr < gc->cmdTransportInfo.fifoEnd)
 #endif /* !FIFO_ASSERT_FULL */
 
 #if (GLIDE_PLATFORM & GLIDE_OS_WIN32)
@@ -778,7 +778,7 @@ do {                                                                     \
     GDBG_INFO(120, "REG_GROUP_SET:\n");                                  \
   }                                                                      \
   GDBG_INFO(120, "\tFile: %s Line %d\n", __FILE__, __LINE__);            \
-  GDBG_INFO(120, "\tfifoPtr: 0x%x, Val: 0x%x\n", (FxU32) _regGroupFifoPtr - (FxU32)gc->rawLfb, __val);\
+  GDBG_INFO(120, "\tfifoPtr: 0x%x, Val: 0x%x\n", (FxU32)((AnyPtr)_regGroupFifoPtr - (AnyPtr)gc->rawLfb), __val);\
   SET_FIFO(*_regGroupFifoPtr++, (__val)); \
   GR_INC_SIZE(sizeof(FxU32)); \
 } while(0)
@@ -799,7 +799,7 @@ do {                                                                     \
     GDBG_INFO(120, "REG_GROUP_SET:\n");                                  \
   }                                                                      \
   GDBG_INFO(120, "\tFile: %s Line %d\n", __FILE__, __LINE__);            \
-  GDBG_INFO(120, "\tfifoPtr: 0x%x, Val: 0x%x\n", (FxU32) _regGroupFifoPtr - (FxU32)gc->rawLfb, __val);\
+  GDBG_INFO(120, "\tfifoPtr: 0x%x, Val: 0x%x\n", (FxU32)((AnyPtr)_regGroupFifoPtr - (AnyPtr)gc->rawLfb), __val);\
   SET_FIFO(*_regGroupFifoPtr++, (__val)); \
   GR_INC_SIZE(sizeof(FxU32)); \
 } while(0)
@@ -815,7 +815,7 @@ do { \
   }                                                                      \
   GDBG_INFO(220, "REG_GROUP_SET_WAX:\n");\
   GDBG_INFO(220, "\tFile: %s Line %d\n", __FILE__, __LINE__);\
-  GDBG_INFO(220, "\tfifoPtr: 0x%x, Val: 0x%x\n", (FxU32) _regGroupFifoPtr - (FxU32)gc->rawLfb, __val);\
+  GDBG_INFO(220, "\tfifoPtr: 0x%x, Val: 0x%x\n", (FxU32)((AnyPtr)_regGroupFifoPtr - (AnyPtr)gc->rawLfb), __val);\
   SET_FIFO(*_regGroupFifoPtr++, (__val)); \
   GR_INC_SIZE(sizeof(FxU32)); \
 } while(0)
@@ -1066,8 +1066,8 @@ _grH3FifoDump_Linear(const FxU32* const linearPacketAddr);
                          "Called before grSstWinOpen()"); \
   GR_ASSERT(((FxU32)(tPackPtr) & FIFO_ALIGN_MASK) == 0);   /* alignment */ \
   GR_ASSERT((((__nVerts) * (__vertSize)) + sizeof(FxU32)) <= (FxU32)gc->cmdTransportInfo.fifoRoom); \
-  GR_ASSERT((((FxU32)tPackPtr) + ((__nVerts) * (__vertSize)) + sizeof(FxU32)) < \
-            (FxU32)gc->cmdTransportInfo.fifoEnd); \
+  GR_ASSERT((((AnyPtr)tPackPtr) + ((__nVerts) * (__vertSize)) + sizeof(FxU32)) < \
+            (AnyPtr)gc->cmdTransportInfo.fifoEnd); \
   GR_ASSERT(nVertex < 0x10); \
   GR_ASSERT(nVertex > 0x00); \
   GR_ASSERT(((__packetHdr) & 0xE0000000UL) == 0x00UL); \
@@ -1439,7 +1439,7 @@ do { \
     GR_SET_EXPECTED_SIZE(((__numWords) << 2), (__numWords))
 # define LINEAR_WRITE_SET(__addr, __val) \
 do { \
-   FxU32* tempAddr = (FxU32*)((FxU32)(__addr) + (FxU32)gc->rawLfb); \
+   FxU32* tempAddr = (FxU32*)((AnyPtr)(__addr) + (AnyPtr)gc->rawLfb); \
    SET(*tempAddr, __val); \
    GR_INC_SIZE(sizeof(FxU32)); \
 } while(0)
@@ -1512,7 +1512,7 @@ do { \
 
 #define REG_GROUP_SET_WAX(__regBase, __regAddr, __val) \
 do { \
-  SET(((SstGRegs*)((FxU32) __regBase + SST_2D_OFFSET))->__regAddr, (__val)); \
+  SET(((SstGRegs*)((AnyPtr) __regBase + SST_2D_OFFSET))->__regAddr, (__val)); \
   GR_INC_SIZE(sizeof(FxU32)); \
 } while(0)
 

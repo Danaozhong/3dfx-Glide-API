@@ -1753,7 +1753,7 @@ typedef struct GrGC_s
                           */
     
     FxU32* fifoPtr;      /* Current write pointer into fifo */
-    unsigned long   fifoRead;     /* Last known hw read ptr. 
+    AnyPtr          fifoRead;     /* Last known hw read ptr. 
                           * If on an sli enabled system this will be
                           * the 'closest' hw read ptr of the sli
                           * master and slave.
@@ -1848,7 +1848,7 @@ typedef struct GrGC_s
     backBuffer,
     buffers0[4],
     buffers1[4];
-    unsigned long lfbBuffers[4];              /* Tile relative addresses of the color/aux
+    AnyPtr lfbBuffers[4];              /* Tile relative addresses of the color/aux
                                  * buffers for lfbReads.
                                  */  
   unsigned long lockPtrs[2];        /* pointers to locked buffers */
@@ -2151,7 +2151,11 @@ extern struct _GlideRoot_s GR_CDECL _GlideRoot;
 extern GrGCFuncs _curGCFuncs;
 #endif
 
-#if defined( _MSC_VER)
+#if defined(_MSC_VER) && defined(_M_X64)
+/* No inline assembly on x64, the interlocked exchange is the same xchg. */
+#  include <intrin.h>
+#  define P6FENCE _InterlockedExchange((long volatile *)&_GlideRoot.p6Fencer, 0)
+#elif defined( _MSC_VER)
 /* Turn off the no return value warning for the function definition.
  *
  * NB: The function returns a value so that we can use it in places
@@ -2313,8 +2317,10 @@ _trisetup_noclip_valid(const void *va, const void *vb, const void *vc );
 #define TRISETUP_RGB(__cullMode)   TRISETUP_NORGB(__cullMode)
 #define TRISETUP_ARGB(__cullMode)  TRISETUP_NORGB(__cullMode)
 
-#if defined(_MSC_VER)
-#if defined(GLIDE_DEBUG) || GLIDE_USE_C_TRISETUP
+/* The C setup procs take their parameters from the stack, an inline push
+ * also breaks the stack pointer check of MSVC debug builds (/RTCs). */
+#if defined(_MSC_VER) && defined(_M_IX86) && !GLIDE_USE_C_TRISETUP
+#if defined(GLIDE_DEBUG)
 /* MSVC6 Debug does funny stuff, so push our parms inline */
 #define TRISETUP(_a, _b, _c) \
   __asm { \
@@ -2724,23 +2730,6 @@ _grSstVRetraceOn(void);
 
 #define USE_STANDARD_TLS_FUNC 0
 
-#if USE_STANDARD_TLS_FUNC
-
-#ifdef __GNUC__
-static
-#endif
-inline unsigned long
-getThreadValueFast() {
-  /* According to Microsoft, TlsGetValue is implemented with speed as the
-   * primary goal. The function performs minimal parameter validation and
-   * error checking. This function succeeds only when the TLS index is in
-   * the range 0 through (TLS_MINIMUM_AVAILABLE - 1).
-   */
-  return (unsigned long)TlsGetValue(_GlideRoot.tlsIndex);
-}
-
-#else
-
 #define W95_TEB_PTR                     0x18
 #define W95_TEB_TLS_OFFSET              0x88
 #define W95_TLS_INDEX_TO_OFFSET(i)      ((i)*sizeof(DWORD)+W95_TEB_TLS_OFFSET)
@@ -2749,10 +2738,25 @@ getThreadValueFast() {
 #define WNT_TEB_TLS_OFFSET              0xE10
 #define WNT_TLS_INDEX_TO_OFFSET(i)      ((i)*sizeof(DWORD)+WNT_TEB_TLS_OFFSET)
 
-#ifdef __GNUC__
-static __inline unsigned long getThreadValueFast (void)
+/* The offsets above are those of 32-bit Windows. 64-bit Windows has the TEB
+ * in gs and 64-bit TLS slots, so it uses the API. */
+#if USE_STANDARD_TLS_FUNC || defined(_WIN64)
+
+static __inline AnyPtr
+getThreadValueFast(void) {
+  /* According to Microsoft, TlsGetValue is implemented with speed as the
+   * primary goal. The function performs minimal parameter validation and
+   * error checking. This function succeeds only when the TLS index is in
+   * the range 0 through (TLS_MINIMUM_AVAILABLE - 1).
+   */
+  return (AnyPtr)TlsGetValue(_GlideRoot.tlsIndex);
+}
+
+#elif defined(__GNUC__)
+
+static __inline AnyPtr getThreadValueFast (void)
 {
- unsigned long t;
+ AnyPtr t;
  __asm __volatile (" \
        mov %%fs:(%0), %%eax; \
        add %1, %%eax; \
@@ -2764,7 +2768,7 @@ static __inline unsigned long getThreadValueFast (void)
 #else  /* __GNUC__ */
 
 #pragma warning (4:4035)        /* No return value */
-__inline unsigned long
+__inline AnyPtr
 getThreadValueFast() {
   __asm {
     __asm mov eax, DWORD PTR fs:[WNT_TEB_PTR] 
@@ -2773,7 +2777,6 @@ getThreadValueFast() {
   }
 }
 
-#endif /* __GNUC__ */
 #endif
 
 #endif
@@ -2787,7 +2790,7 @@ getThreadValueFast() {
 #endif
 
 #if (GLIDE_PLATFORM & GLIDE_OS_UNIX)
-extern unsigned long threadValueLinux;
+extern AnyPtr threadValueLinux;
 #define getThreadValueFast() threadValueLinux
 #endif /* defined(GLIDE_PLATFORM & GLIDE_OS_UNIX) */
 
@@ -2815,9 +2818,9 @@ void
 freeThreadStorage( void );
 
 void 
-setThreadValue( unsigned long value );
+setThreadValue( AnyPtr value );
 
-unsigned long
+AnyPtr
 getThreadValueSLOW( void );
 
 void 
@@ -3234,9 +3237,9 @@ extern FxU32 SST_TEXTURE_ALIGN;
 #error "Need HW_BASE_PTR to convert hw address into board address."
 #endif
    
-#define HW_REG_PTR(__b)        ((FxU32*)(((FxU32)(__b)) + HW_REGISTER_OFFSET))
-#define HW_LFB_PTR(__b)        ((FxU32*)(((FxU32)(__b)) + HW_LFB_OFFSET))
-#define HW_TEX_PTR(__b)        ((FxU32*)(((FxU32)(__b)) + HW_TEXTURE_OFFSET))   
+#define HW_REG_PTR(__b)        ((FxU32*)(((AnyPtr)(__b)) + HW_REGISTER_OFFSET))
+#define HW_LFB_PTR(__b)        ((FxU32*)(((AnyPtr)(__b)) + HW_LFB_OFFSET))
+#define HW_TEX_PTR(__b)        ((FxU32*)(((AnyPtr)(__b)) + HW_TEXTURE_OFFSET))   
 
 /* access a floating point array with a byte index */
 #include <fxfarray.h>

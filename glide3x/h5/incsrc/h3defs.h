@@ -2132,7 +2132,7 @@
 
 #define SST_IS_REGISTER_ADDR(a)  ( (a) >= SST_IO_OFFSET         && (a) < SST_TEX_OFFSET )
 
-#define SST_BASE_ADDRESS(sst)   ((long)(sst)-SST_3D_OFFSET)
+#define SST_BASE_ADDRESS(sst)   ((AnyPtr)(sst)-SST_3D_OFFSET)
 #define SST_IO_ADDRESS(sst)     (SST_IO_OFFSET+SST_BASE_ADDRESS(sst))
 #define SST_CMDAGP_ADDRESS(sst) (SST_CMDAGP_OFFSET+SST_BASE_ADDRESS(sst))
 #define SST_GUI_ADDRESS(sst)    (SST_2D_OFFSET+SST_BASE_ADDRESS(sst))

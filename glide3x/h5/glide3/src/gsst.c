@@ -1473,7 +1473,7 @@ GR_EXT_ENTRY(grSstWinOpenExt, GrContext_t, ( FxU32                   hWnd,
    * current gc. This gc is valid for all threads in the fullscreen
    * context.
    */
-  setThreadValue( (unsigned long)&_GlideRoot.GCs[_GlideRoot.current_sst] );
+  setThreadValue( (AnyPtr)&_GlideRoot.GCs[_GlideRoot.current_sst] );
   
   {
     /* Partial Argument Validation */
@@ -2290,7 +2290,7 @@ GR_EXT_ENTRY(grSstWinOpenExt, GrContext_t, ( FxU32                   hWnd,
     for (buffer = 0; buffer < nColBuffers; buffer++) {
       gc->buffers0[buffer] = bufInfo->colBuffStart0[buffer];
       GDBG_INFO(80, "Buffer %d:  Start: 0x%x\n", buffer, gc->buffers0[buffer]);
-      gc->lfbBuffers[buffer] = (unsigned long)gc->rawLfb + bufInfo->lfbBuffAddr0[buffer];
+      gc->lfbBuffers[buffer] = (AnyPtr)gc->rawLfb + bufInfo->lfbBuffAddr0[buffer];
       if (bInfo->buffInfo.enable2ndbuffer) {
         gc->buffers1[buffer] = bufInfo->colBuffStart1[buffer];
         GDBG_INFO(80, "Buffer %d:  Start: 0x%x\n", buffer, gc->buffers1[buffer]);
@@ -2299,7 +2299,7 @@ GR_EXT_ENTRY(grSstWinOpenExt, GrContext_t, ( FxU32                   hWnd,
     if (nAuxBuffers != 0) {
       gc->buffers0[buffer] = bufInfo->auxBuffStart0;
       GDBG_INFO(80, "Aux Buffer:  Start: 0x%x\n", gc->buffers0[buffer]);
-      gc->lfbBuffers[buffer] = (unsigned long)gc->rawLfb + bufInfo->lfbBuffAddr0[buffer];
+      gc->lfbBuffers[buffer] = (AnyPtr)gc->rawLfb + bufInfo->lfbBuffAddr0[buffer];
       if (bInfo->buffInfo.enable2ndbuffer) {
         gc->buffers1[buffer] = bufInfo->auxBuffStart1;
         GDBG_INFO(80, "Aux Buffer:  Start: 0x%x\n", gc->buffers1[buffer]);
@@ -2503,7 +2503,7 @@ GR_EXT_ENTRY(grSstWinOpenExt, GrContext_t, ( FxU32                   hWnd,
       for ( buffer = 0; buffer < nColBuffers; buffer++ ) {
         gc->buffers0[buffer] = bufInfo->colBuffStart0[buffer];
         GDBG_INFO(80, "Buffer %d:  Start: 0x%x\n", buffer, gc->buffers0[buffer]);
-        gc->lfbBuffers[buffer] = (FxU32)gc->rawLfb + bufInfo->lfbBuffAddr0[buffer];
+        gc->lfbBuffers[buffer] = (AnyPtr)gc->rawLfb + bufInfo->lfbBuffAddr0[buffer];
         if (bInfo->buffInfo.enable2ndbuffer) {
           gc->buffers1[buffer] = bufInfo->colBuffStart1[buffer];
           GDBG_INFO(80, "Buffer %d:  Start: 0x%x\n", buffer, gc->buffers1[buffer]);
@@ -2512,7 +2512,7 @@ GR_EXT_ENTRY(grSstWinOpenExt, GrContext_t, ( FxU32                   hWnd,
       if (nAuxBuffers != 0) {
         gc->buffers0[buffer] = bufInfo->auxBuffStart0;
         GDBG_INFO(80, "Aux Buffer:  Start: 0x%x\n", gc->buffers0[buffer]);
-        gc->lfbBuffers[buffer] = (FxU32)gc->rawLfb + bufInfo->lfbBuffAddr0[buffer];
+        gc->lfbBuffers[buffer] = (AnyPtr)gc->rawLfb + bufInfo->lfbBuffAddr0[buffer];
         if (bInfo->buffInfo.enable2ndbuffer) {
           gc->buffers1[buffer] = bufInfo->auxBuffStart1;
           GDBG_INFO(80, "Aux Buffer:  Start: 0x%x\n", gc->buffers1[buffer]);
@@ -2665,7 +2665,7 @@ GR_EXT_ENTRY(grSstWinOpenExt, GrContext_t, ( FxU32                   hWnd,
       for ( buffer = 0; buffer < nColBuffers; buffer++ ) {
         gc->buffers0[buffer] = bufInfo->colBuffStart0[buffer];
         GDBG_INFO(80, "Buffer %d:  Start: 0x%x\n", buffer, gc->buffers0[buffer]);
-        gc->lfbBuffers[buffer] = (FxU32)gc->rawLfb + bufInfo->lfbBuffAddr0[buffer];
+        gc->lfbBuffers[buffer] = (AnyPtr)gc->rawLfb + bufInfo->lfbBuffAddr0[buffer];
         if (bInfo->buffInfo.enable2ndbuffer) {
           gc->buffers1[buffer] = bufInfo->colBuffStart1[buffer];
           GDBG_INFO(80, "Buffer %d:  Start: 0x%x\n", buffer, gc->buffers1[buffer]);
@@ -2674,7 +2674,7 @@ GR_EXT_ENTRY(grSstWinOpenExt, GrContext_t, ( FxU32                   hWnd,
       if (nAuxBuffers != 0) {
         gc->buffers0[buffer] = bufInfo->auxBuffStart0;
         GDBG_INFO(80, "Aux Buffer:  Start: 0x%x\n", gc->buffers0[buffer]);
-        gc->lfbBuffers[buffer] = (FxU32)gc->rawLfb + bufInfo->lfbBuffAddr0[buffer];
+        gc->lfbBuffers[buffer] = (AnyPtr)gc->rawLfb + bufInfo->lfbBuffAddr0[buffer];
         if (bInfo->buffInfo.enable2ndbuffer) {
           gc->buffers1[buffer] = bufInfo->auxBuffStart1;
           GDBG_INFO(80, "Aux Buffer:  Start: 0x%x\n", gc->buffers1[buffer]);
@@ -3108,7 +3108,7 @@ GR_ENTRY(grSstWinClose, FxBool, (GrContext_t context))
    * the tls gc explicitly otherwise other whacky-ness (read 'random
    * crashes' will ensue). 
    */
-  setThreadValue((unsigned long)gc);
+  setThreadValue((AnyPtr)gc);
 
 #if (GLIDE_PLATFORM & GLIDE_OS_WIN32)
   /* free splashscreen DLL */

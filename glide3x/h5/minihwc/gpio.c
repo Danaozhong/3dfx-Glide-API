@@ -66,11 +66,12 @@ static unsigned long pci_write_cfg (unsigned long bus,
                                     unsigned long offset,
                                     unsigned long value)
 {
+  FxU32 data = value;
   PciRegister reg;
   reg.regAddress = offset;
   reg.sizeInBytes = 4;
 
-  return pciSetConfigData/*Raw*/(reg, ((dwDevFunc & 7) << 13) | (bus << 5) | (dwDevFunc & 0x1f), &value);
+  return pciSetConfigData/*Raw*/(reg, ((dwDevFunc & 7) << 13) | (bus << 5) | (dwDevFunc & 0x1f), &data);
                                    /* --------function-------   ----bus---   ------device------ */
 }
 

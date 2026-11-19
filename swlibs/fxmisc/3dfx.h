@@ -38,7 +38,12 @@ typedef unsigned int    FxU32;
 typedef long long       FxI64;
 typedef unsigned long long FxU64;
 
+/* An integer that holds a pointer, long is only 32 bits on 64-bit Windows. */
+#ifdef _WIN64
+typedef unsigned long long AnyPtr;
+#else
 typedef unsigned long   AnyPtr;
+#endif
 typedef int             FxBool;
 typedef float           FxFloat;
 typedef double          FxDouble;
