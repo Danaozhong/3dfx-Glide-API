@@ -54,10 +54,11 @@ initThreadStorage( void )
     if (_GlideRoot.tlsIndex == TLS_OUT_OF_INDEXES)
       GrErrorCallback( "initThreadStorage:  Failed to allocate TLS index.", FXTRUE );
 
+#if !USE_STANDARD_TLS_FUNC && !defined(_WIN64)
     /* pray the index is lower than 64 -- TLS_MINIMUM_AVAILABLE = 64 */
     if (_GlideRoot.tlsIndex >= TLS_MINIMUM_AVAILABLE)
       GrErrorCallback( "initThreadStorage:  TLS index higher than 64.", FXTRUE );
-#if !USE_STANDARD_TLS_FUNC
+
     if (hwcIsOSWin9x()) {
       _GlideRoot.tlsOffset = W95_TLS_INDEX_TO_OFFSET(_GlideRoot.tlsIndex);
     }
@@ -68,12 +69,12 @@ initThreadStorage( void )
   }
 } /* initThreadStorage */
 
-void setThreadValue( unsigned long value ) {
+void setThreadValue( AnyPtr value ) {
     GR_CHECK_F( "setThreadValue", !threadInit, "Thread storage not initialized\n" );
     TlsSetValue( _GlideRoot.tlsIndex, (void*)value );
 }
 
-unsigned long getThreadValueSLOW( void )
+AnyPtr getThreadValueSLOW( void )
 {
     GR_CHECK_F( "getThreadValue", !threadInit, "Thread storage not initialized\n" );
 
@@ -82,9 +83,9 @@ unsigned long getThreadValueSLOW( void )
 
 #if USE_STANDARD_TLS_FUNC
 /* used in gdraw.c (grDrawTriangle) and xos.inc */
-unsigned long getThreadValue(void)
+AnyPtr getThreadValue(void)
 {
-  return (unsigned long)TlsGetValue(_GlideRoot.tlsIndex);
+  return (AnyPtr)TlsGetValue(_GlideRoot.tlsIndex);
 }
 #endif
 
@@ -128,12 +129,12 @@ void initThreadStorage(void)
 {
 }
 
-void setThreadValue( unsigned long value )
+void setThreadValue( AnyPtr value )
 {
 	_threadValueMacOS = value;
 }
 
-unsigned long getThreadValueSLOW( void )
+AnyPtr getThreadValueSLOW( void )
 {
 	return _threadValueMacOS;
 }
@@ -160,18 +161,18 @@ void endCriticalSection(void)
 
 #elif (GLIDE_PLATFORM & GLIDE_OS_UNIX)
 
-unsigned long threadValueLinux;
+AnyPtr threadValueLinux;
 
 void initThreadStorage(void)
 {
 }
 
-void setThreadValue( unsigned long value )
+void setThreadValue( AnyPtr value )
 {
 	threadValueLinux = value;
 }
 
-unsigned long getThreadValueSLOW( void )
+AnyPtr getThreadValueSLOW( void )
 {
 	return threadValueLinux;
 }
@@ -200,12 +201,12 @@ void initThreadStorage(void)
 {
 }
 
-void setThreadValue( unsigned long value )
+void setThreadValue( AnyPtr value )
 {
 	threadValueDJGPP = value;
 }
 
-unsigned long getThreadValueSLOW( void )
+AnyPtr getThreadValueSLOW( void )
 {
 	return threadValueDJGPP;
 }

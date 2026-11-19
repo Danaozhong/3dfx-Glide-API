@@ -4109,7 +4109,7 @@ GR_ENTRY(grGlideShutdown, void, (void))
            * continuing so that any internal glide calls have a valid
            * gc from tls via GR_DCL_GC. F*ck this up at your own peril.
            */
-          setThreadValue((unsigned long)gc);
+          setThreadValue((AnyPtr)gc);
 #if (GLIDE_PLATFORM & GLIDE_OS_WIN32)
           /* Flush any remaining commands and cleanup any per gc state */
           grSurfaceReleaseContext((GrContext_t)gc);

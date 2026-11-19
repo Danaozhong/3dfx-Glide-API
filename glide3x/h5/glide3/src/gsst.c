@@ -1473,7 +1473,7 @@ GR_EXT_ENTRY(grSstWinOpenExt, GrContext_t, ( FxU32                   hWnd,
    * current gc. This gc is valid for all threads in the fullscreen
    * context.
    */
-  setThreadValue( (unsigned long)&_GlideRoot.GCs[_GlideRoot.current_sst] );
+  setThreadValue( (AnyPtr)&_GlideRoot.GCs[_GlideRoot.current_sst] );
   
   {
     /* Partial Argument Validation */
@@ -3108,7 +3108,7 @@ GR_ENTRY(grSstWinClose, FxBool, (GrContext_t context))
    * the tls gc explicitly otherwise other whacky-ness (read 'random
    * crashes' will ensue). 
    */
-  setThreadValue((unsigned long)gc);
+  setThreadValue((AnyPtr)gc);
 
 #if (GLIDE_PLATFORM & GLIDE_OS_WIN32)
   /* free splashscreen DLL */
