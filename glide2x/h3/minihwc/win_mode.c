@@ -144,7 +144,7 @@ msgModeSetFailure(HRESULT hResult)
 } /* msgModeSetFailure */
 
 static void
-msgEnumDisplayModes(hResult)
+msgEnumDisplayModes(HRESULT hResult)
 {
   if (hResult & DDERR_INVALIDOBJECT)
     GDBG_INFO(80, "DDERR_INVALIDOBJECT\n");

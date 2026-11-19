@@ -2317,8 +2317,10 @@ _trisetup_noclip_valid(const void *va, const void *vb, const void *vc );
 #define TRISETUP_RGB(__cullMode)   TRISETUP_NORGB(__cullMode)
 #define TRISETUP_ARGB(__cullMode)  TRISETUP_NORGB(__cullMode)
 
-#if defined(_MSC_VER) && defined(_M_IX86)
-#if defined(GLIDE_DEBUG) || GLIDE_USE_C_TRISETUP
+/* The C setup procs take their parameters from the stack, an inline push
+ * also breaks the stack pointer check of MSVC debug builds (/RTCs). */
+#if defined(_MSC_VER) && defined(_M_IX86) && !GLIDE_USE_C_TRISETUP
+#if defined(GLIDE_DEBUG)
 /* MSVC6 Debug does funny stuff, so push our parms inline */
 #define TRISETUP(_a, _b, _c) \
   __asm { \

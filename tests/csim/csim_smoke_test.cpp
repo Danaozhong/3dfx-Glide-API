@@ -18,11 +18,26 @@
 #define NOMINMAX
 #include <windows.h>
 #endif
+#if defined(_MSC_VER) && defined(_DEBUG)
+#include <crtdbg.h>
+#endif
 
 #include <glide.h>
 #include <csimstats.h>
 
 namespace {
+
+#if defined(_MSC_VER) && defined(_DEBUG)
+// Assertions and run-time check failures of the debug CRT open a message box,
+// which nobody closes on a CI runner, so report them on stderr instead.
+const bool crtReportsOnStderr = [] {
+  for (int type : {_CRT_WARN, _CRT_ERROR, _CRT_ASSERT}) {
+    _CrtSetReportMode(type, _CRTDBG_MODE_FILE);
+    _CrtSetReportFile(type, _CRTDBG_FILE_STDERR);
+  }
+  return true;
+}();
+#endif
 
 struct Vertex {
   float x, y;
