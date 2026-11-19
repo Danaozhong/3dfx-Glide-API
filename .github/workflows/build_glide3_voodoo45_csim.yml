@@ -4,7 +4,8 @@ name: Build Glide3x for Voodoo4/5 Library (HAL_CSIM, chip simulator stub)
 # chip simulator interface instead of minihwc. The simulator is replaced by a
 # fake board (swlibs/csim), which the integration tests in tests/csim run
 # against: on Linux (GCC, x64 and x32) and on Windows (MSVC, x64 and x32).
-# The MinGW cross builds only build the tests.
+# The MinGW cross builds do not build the tests: GoogleTest needs std::mutex,
+# which MinGW with the win32 thread model does not have.
 
 on:
   push:
@@ -51,15 +52,6 @@ jobs:
       run: |
         ctest --output-on-failure
 
-    # The image only has the 32-bit C libraries, GoogleTest also needs the
-    # 32-bit C++ standard library.
-    - name: Install 32-bit C++ Support
-      run: |
-        SUDO=""
-        if [ "$(id -u)" -ne 0 ]; then SUDO=sudo; fi
-        $SUDO apt-get update
-        $SUDO apt-get install -y --no-install-recommends g++-multilib
-
     - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Linux, x32)
       run: |
         mkdir bin_csim_x32
@@ -76,14 +68,14 @@ jobs:
       run: |
         mkdir bin_csim_win_x64
         cd bin_csim_win_x64
-        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DGLIDE_BUILD_TESTS=ON -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_64.cmake ..
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_64.cmake ..
         cmake --build .
 
     - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Windows, GCC cross compile, x32)
       run: |
         mkdir bin_csim_win_x32
         cd bin_csim_win_x32
-        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DGLIDE_BUILD_TESTS=ON -DBUILD_32BIT=ON -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_32.cmake ..
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DBUILD_32BIT=ON -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_32.cmake ..
         cmake --build .
 
     - name: Check that the simulator interface is used
