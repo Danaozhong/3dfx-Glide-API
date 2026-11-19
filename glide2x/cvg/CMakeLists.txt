@@ -184,14 +184,13 @@ target_compile_definitions(glide_config INTERFACE
     -DGL_X86
     -DGLIDE_USE_C_TRISETUP
 )
-if(CMAKE_BUILD_TYPE MATCHES DEBUG)
-    target_compile_definitions(glide_config INTERFACE
-        -DGDBG_INFO_ON 
-        -DGLIDE_DEBUG
-        -DGLIDE_SANITY_ASSERT
-        -DGLIDE_SANITY_SIZE
-    )
-endif()
+# $<CONFIG:Debug> is case insensitive and also works with multi-config generators.
+target_compile_definitions(glide_config INTERFACE
+    $<$<CONFIG:Debug>:GDBG_INFO_ON>
+    $<$<CONFIG:Debug>:GLIDE_DEBUG>
+    $<$<CONFIG:Debug>:GLIDE_SANITY_ASSERT>
+    $<$<CONFIG:Debug>:GLIDE_SANITY_SIZE>
+)
 
 if(WIN32 AND NOT MSVC)
     # MinGW predefines WINNT, which the Glide sources use for Windows NT
