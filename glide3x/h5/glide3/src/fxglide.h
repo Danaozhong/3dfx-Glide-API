@@ -1848,7 +1848,7 @@ typedef struct GrGC_s
     backBuffer,
     buffers0[4],
     buffers1[4];
-    unsigned long lfbBuffers[4];              /* Tile relative addresses of the color/aux
+    AnyPtr lfbBuffers[4];              /* Tile relative addresses of the color/aux
                                  * buffers for lfbReads.
                                  */  
   unsigned long lockPtrs[2];        /* pointers to locked buffers */

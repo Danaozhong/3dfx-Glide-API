@@ -1,12 +1,14 @@
 /*
 ** Stub of the 3dfx chip simulator (CSIM) interface.
 **
-** The original simulator was never released. This header only declares
-** what the Glide sources need to compile with -DHAL_CSIM, and
-** src/csim_stub.c provides do-nothing implementations so the result links.
+** The original simulator was never released. This header declares what the
+** Glide sources need to compile with -DHAL_CSIM, and src/csim_stub.c
+** implements it with a fake board: the board address space is plain memory,
+** register reads return what was written, the chip reports itself idle and
+** the command FIFO is consumed as soon as it is written. Nothing is
+** rendered, but Glide can be initialized, open a window and send commands,
+** which makes it possible to test Glide without hardware.
 **
-** A Glide library built against this stub contains all the simulator hooks
-** but has no simulated hardware: it finds no boards and fails to initialize.
 ** To run against a real simulator, replace this directory with the real
 ** csim.h and library.
 */
@@ -41,6 +43,8 @@ volatile SstRegs *csimInit(FxU32 chipIndex);
 
 /* Make the chip appear as a PCI multi-function device (SLI/AA boards). */
 void csimMakeMultiFunctionDevice(volatile SstRegs *sst);
+
+#include <csimstats.h>
 
 #ifdef __cplusplus
 }

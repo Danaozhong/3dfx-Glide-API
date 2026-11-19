@@ -158,7 +158,11 @@ if(BUILD_HAL_CSIM)
         -DHAL_CSIM=1
         -DGLIDE_INIT_HAL=1
     )
-    target_link_libraries(glide_config INTERFACE csim)
+    # Only the headers: the fake board is linked into the library below, so
+    # that programs linking the library share its single instance.
+    target_include_directories(glide_config INTERFACE
+        $<TARGET_PROPERTY:csim,INTERFACE_INCLUDE_DIRECTORIES>
+    )
 else()
     # The hardware is accessed through minihwc.
     target_compile_definitions(glide_config INTERFACE
@@ -253,6 +257,9 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
     glide_config
     pcilib
 )
+if(BUILD_HAL_CSIM)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE csim)
+endif()
 glide_check_win9x_compatibility(${CMAKE_PROJECT_NAME})
 
 if (${EMBED_TEXUS2})

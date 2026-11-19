@@ -2,7 +2,9 @@ name: Build Glide3x for Voodoo4/5 Library (HAL_CSIM, chip simulator stub)
 
 # Builds Glide3x with HAL_CSIM, where the hardware is accessed through the
 # chip simulator interface instead of minihwc. The simulator is replaced by a
-# stub (swlibs/csim), so the library can be built, but finds no boards.
+# fake board (swlibs/csim), which the integration tests in tests/csim run
+# against: on Linux (GCC, x64 and x32) and on Windows (MSVC, x64 and x32).
+# The MinGW cross builds only build the tests.
 
 on:
   push:
@@ -41,28 +43,38 @@ jobs:
       run: |
         mkdir bin_csim_x64
         cd bin_csim_x64
-        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON ..
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DGLIDE_BUILD_TESTS=ON ..
         cmake --build .
+
+    - name: Run Integration Tests (HAL_CSIM, Linux, x64)
+      working-directory: bin_csim_x64
+      run: |
+        ctest --output-on-failure
 
     - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Linux, x32)
       run: |
         mkdir bin_csim_x32
         cd bin_csim_x32
-        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DBUILD_32BIT=ON ..
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DGLIDE_BUILD_TESTS=ON -DBUILD_32BIT=ON ..
         cmake --build .
+
+    - name: Run Integration Tests (HAL_CSIM, Linux, x32)
+      working-directory: bin_csim_x32
+      run: |
+        ctest --output-on-failure
 
     - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Windows, GCC cross compile, x64)
       run: |
         mkdir bin_csim_win_x64
         cd bin_csim_win_x64
-        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_64.cmake ..
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DGLIDE_BUILD_TESTS=ON -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_64.cmake ..
         cmake --build .
 
     - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Windows, GCC cross compile, x32)
       run: |
         mkdir bin_csim_win_x32
         cd bin_csim_win_x32
-        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DBUILD_32BIT=ON -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_32.cmake ..
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_HAL_CSIM=ON -DGLIDE_BUILD_TESTS=ON -DBUILD_32BIT=ON -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_32.cmake ..
         cmake --build .
 
     - name: Check that the simulator interface is used
@@ -83,3 +95,46 @@ jobs:
             bin_csim_x64/glide3x/h5/*.so
             bin_csim_win_x64/glide3x/h5/*.dll
             bin_csim_win_x32/glide3x/h5/*.dll
+
+  test_csim_msvc:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+        arch: [x64, Win32]
+        include:
+          - arch: x64
+            cmake_args: ""
+          - arch: Win32
+            cmake_args: "-DBUILD_32BIT=ON"
+
+    steps:
+    - uses: ilammy/setup-nasm@v1
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Generate Fx Build Number Tool
+      working-directory: "glide3x/h5/glide3/src/"
+      run: |
+        mkdir fxbldno_tool/bin
+        cd fxbldno_tool/bin
+        cmake -DCMAKE_GENERATOR_PLATFORM=Win32 ..
+        cmake --build .
+
+    - name: Generate Build Number Header Files
+      working-directory: "glide3x/h5/glide3/src/"
+      run: |
+        ./fxbldno_tool/bin/Debug/fxbldno.exe  > fxbldno.h
+
+    - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Windows, MSVC, ${{ matrix.arch }})
+      run: |
+        mkdir bin_csim
+        cd bin_csim
+        cmake -A ${{ matrix.arch }} ${{ matrix.cmake_args }} -DBUILD_HAL_CSIM=ON -DGLIDE_BUILD_TESTS=ON ..
+        cmake --build . --config ${{ matrix.build_type }}
+
+    - name: Run Integration Tests (HAL_CSIM, Windows, MSVC, ${{ matrix.arch }})
+      working-directory: bin_csim
+      run: |
+        ctest -C ${{ matrix.build_type }} --output-on-failure
