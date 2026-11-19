@@ -46,37 +46,24 @@ trisetup_cull(const void *va, const void *vb, const void *vc)
     
 
     {
-      /* Hmm very dirty it seems as if vPtr first points to va, then vb then
-         vc, iow it seems as if this code assumes a certain stack layout! */
-      const void **vPtr = &va; 
-      int i;
-      
       GR_FLUSH_STATE();
       
       GR_SET_EXPECTED_SIZE(_GlideRoot.curTriSize, 1);
       TRI_STRIP_BEGIN(kSetupStrip, 3, gc->state.vData.vSize, SSTCP_PKT3_BDDBDD);
       
-#if 0
-      oow[1] = 1.0f / FARRAY(vb, gc->state.vData.wInfo.offset);
-      oow[2] = 1.0f / FARRAY(vc, gc->state.vData.wInfo.offset);
-#endif
-      for (i = 0; i < 3; i++) {
-        va = *vPtr++;
-#if 0
-        oowa = oow[i];
-        /* x, y */
-        TRI_SETF(FARRAY(va, 0)
-                 *oowa*gc->state.Viewport.hwidth + gc->state.Viewport.ox);
-        TRI_SETF(FARRAY(va, 4)
-                 *oowa*gc->state.Viewport.hheight + gc->state.Viewport.oy);
-#else 
-        TRI_SETF(FARRAY(va, 0));
-        TRI_SETF(FARRAY(va, 4));
-#endif
-#if 0
-        TRI_VP_SETFS(va,oowa);
-#endif
-      }
+      /* Send x, y of the three vertices. This is unrolled instead of looping
+         over an array of the vertex pointers: the vertices are passed in
+         registers on x64, so there is no array to walk from &va, and
+         building one would only add stores. */
+#define SEND_VERTEX_XY(__v) \
+      do { \
+        TRI_SETF(FARRAY((__v), 0)); \
+        TRI_SETF(FARRAY((__v), 4)); \
+      } while (0)
+      SEND_VERTEX_XY(va);
+      SEND_VERTEX_XY(vb);
+      SEND_VERTEX_XY(vc);
+#undef SEND_VERTEX_XY
       TRI_END;
       GR_CHECK_SIZE();
     }
