@@ -41,7 +41,7 @@
 #include <glide.h>
 #include "fxglide.h"
 
-#define FARRAY(p,i) (*(float *)((i)+(int)(p)))
+#include <fxfarray.h>
 
 /*
 ** -----------------------------------------------------------------------

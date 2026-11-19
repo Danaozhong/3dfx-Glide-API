@@ -3239,7 +3239,7 @@ extern FxU32 SST_TEXTURE_ALIGN;
 #define HW_TEX_PTR(__b)        ((FxU32*)(((FxU32)(__b)) + HW_TEXTURE_OFFSET))   
 
 /* access a floating point array with a byte index */
-#define FARRAY(p,i)    (*(float *)((i)+(long)(p)))
+#include <fxfarray.h>
 #define ArraySize(__a) (sizeof(__a) / sizeof((__a)[0]))
 
 #if GDBG_INFO_ON

@@ -3115,7 +3115,7 @@ do { \
 #define HW_TEX_PTR(__b)        ((FxU32*)(((unsigned long)(__b)) + HW_TEXTURE_OFFSET))   
 
 /* access a floating point array with a byte index */
-#define FARRAY(p,i)    (*(float *)((i)+(long)(p)))
+#include <fxfarray.h>
 #define ArraySize(__a) (sizeof(__a) / sizeof((__a)[0]))
 
 void rle_decode_line_asm(FxU16 *tlut,FxU8 *src,FxU16 *dest);
