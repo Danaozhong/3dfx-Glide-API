@@ -73,7 +73,7 @@
 #define OUTBOUNDS(a) (OUTBOUNDSX(a) || OUTBOUNDSY(a))
 
 /* access a floating point array with a byte index */
-#define FARRAY(p,i) (*(float *)((i)+(int)(p)))
+#include <fxfarray.h>
 
 /*---------------------------------------------------------------------------
   NOTE: by Gary Tarolli

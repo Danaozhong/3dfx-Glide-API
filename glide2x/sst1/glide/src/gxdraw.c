@@ -272,7 +272,7 @@ GR_DDFUNC(_trisetup, FxI32, ( const GrVertex *va, const GrVertex *vb, const GrVe
   dyBC *= ooa;
 
 /* access a floating point array with a byte index */
-#define FARRAY(p,i) (*(float *)((i)+(int)(p)))
+#include <fxfarray.h>
 
   while (i) {
     fp = dlp->addr;
@@ -472,7 +472,7 @@ GR_DDFUNC(_trisetup, FxI32, ( const GrVertex *va, const GrVertex *vb, const GrVe
   dyBC *= ooa;
 
 /* access a floating point array with a byte index */
-#define FARRAY(p,i) (*(float *)((i)+(int)(p)))
+#include <fxfarray.h>
 
   /* 
   ** The src vector contains offsets from fa, fb, and fc to for which
@@ -657,7 +657,7 @@ GR_DDFUNC(_trisetup_nogradients, FxI32, ( const GrVertex *va, const GrVertex *vb
   i = dlp->i;
 
 /* access a floating point array with a byte index */
-#define FARRAY(p,i) (*(float *)((i)+(int)(p)))
+#include <fxfarray.h>
 
   while (i) {
     fp = dlp->addr;
@@ -821,7 +821,7 @@ GR_DDFUNC(_trisetup_nogradients, FxI32, ( const GrVertex *va, const GrVertex *vb
    i = dlp->i;
 
 /* access a floating point array with a byte index */
-#define FARRAY(p,i) (*(float *)((i)+(int)(p)))
+#include <fxfarray.h>
 
   /* 
   ** The src vector contains offsets from fa, fb, and fc to for which
