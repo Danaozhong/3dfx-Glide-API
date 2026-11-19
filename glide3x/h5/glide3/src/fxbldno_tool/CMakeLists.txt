@@ -74,11 +74,10 @@ else()
 endif()
 
 # Additional debug logs when building debug variant
-if(CMAKE_BUILD_TYPE MATCHES DEBUG)
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
-        -DGDBG_INFO_ON 
-        -DGLIDE_DEBUG
-        -DGLIDE_SANITY_ASSERT
-        -DGLIDE_SANITY_SIZE
-    )
-endif()
+# $<CONFIG:Debug> is case insensitive and also works with multi-config generators.
+target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
+    $<$<CONFIG:Debug>:GDBG_INFO_ON>
+    $<$<CONFIG:Debug>:GLIDE_DEBUG>
+    $<$<CONFIG:Debug>:GLIDE_SANITY_ASSERT>
+    $<$<CONFIG:Debug>:GLIDE_SANITY_SIZE>
+)
