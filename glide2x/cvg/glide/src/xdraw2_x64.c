@@ -14,6 +14,75 @@
 
 
 /*-------------------------------------------------------------------
+  TRISETUP_SEND_VERTEX
+  Writes one vertex into the packet 3 that is being built (between
+  TRI_BEGIN / TRI_STRIP_BEGIN and TRI_END): x and y, followed by the
+  parameters selected by the current vertex layout (gc->tsuDataList,
+  gc->cmdTransportInfo.paramMask), i.e. what the packet header
+  announces. Same as the vertex loop in gxdraw.c.
+
+  __vertex is a pointer to a vertex (x is its first float).
+  -------------------------------------------------------------------*/
+#define TRISETUP_SEND_VERTEX(__vertex) \
+  do { \
+    const float* const vector = (const float*)(__vertex); \
+    const int* dataList = gc->tsuDataList; \
+    \
+    /* Triangle vertex coordinates (x, y) */ \
+    TRI_SETF(vector[GR_VERTEX_X_OFFSET]); \
+    TRI_SETF(vector[GR_VERTEX_Y_OFFSET]); \
+    \
+    TRISETUP_SEND_PACKED_COLOR(vector); \
+    \
+    /* Other triangle parameters */ \
+    TRISETUP_SEND_FP_CLAMP_TEX(vector); \
+    while (*dataList != 0) { \
+      TRI_SETF_CLAMP(FARRAY(vector, *dataList)); \
+      dataList++; \
+    } \
+  } while (0)
+
+#if GLIDE_PACKED_RGB
+/* Colour as one packed word, only if the packet header says so. */
+#define TRISETUP_SEND_PACKED_COLOR(__vector) \
+  if ((gc->cmdTransportInfo.paramMask & SSTCP_PKT3_PACKEDCOLOR) != 0) { \
+    FxBool doColorP = FXFALSE; \
+    FxU32 packedColor = 0x00; \
+    \
+    if (*dataList == (GR_VERTEX_R_OFFSET << 2)) { \
+      packedColor = (RGBA_COMP_CLAMP(FARRAY((__vector), (GR_VERTEX_B_OFFSET << 2)), B) | \
+                     RGBA_COMP_CLAMP(FARRAY((__vector), (GR_VERTEX_G_OFFSET << 2)), G) | \
+                     RGBA_COMP_CLAMP(FARRAY((__vector), (GR_VERTEX_R_OFFSET << 2)), R)); \
+      dataList++; \
+      doColorP = FXTRUE; \
+    } \
+    \
+    if (*dataList == (GR_VERTEX_A_OFFSET << 2)) { \
+      packedColor |= RGBA_COMP_CLAMP(FARRAY((__vector), (GR_VERTEX_A_OFFSET << 2)), A); \
+      dataList++; \
+      doColorP = FXTRUE; \
+    } \
+    \
+    if (doColorP) TRI_SET(packedColor); \
+  }
+#else /* !GLIDE_PACKED_RGB */
+#define TRISETUP_SEND_PACKED_COLOR(__vector)
+#endif /* !GLIDE_PACKED_RGB */
+
+#if GLIDE_FP_CLAMP_TEX
+/* The parameters up to the terminating 0 are not clamped. */
+#define TRISETUP_SEND_FP_CLAMP_TEX(__vector) \
+  while (*dataList != 0) { \
+    TRI_SETF(FARRAY((__vector), *dataList)); \
+    dataList++; \
+  } \
+  dataList++
+#else /* !GLIDE_FP_CLAMP_TEX */
+#define TRISETUP_SEND_FP_CLAMP_TEX(__vector)
+#endif /* !GLIDE_FP_CLAMP_TEX */
+
+
+/*-------------------------------------------------------------------
   Function: _vptrisetup_cull
   Date: 13-Sep-2021
   Implementor(s): Clemens Zangl
@@ -49,21 +118,13 @@ trisetup_cull(const void *va, const void *vb, const void *vc)
       GR_FLUSH_STATE();
       
       GR_SET_EXPECTED_SIZE(_GlideRoot.curTriSize, 1);
-      TRI_STRIP_BEGIN(kSetupStrip, 3, gc->state.vData.vSize, SSTCP_PKT3_BDDBDD);
+      TRI_STRIP_BEGIN(kSetupStrip, 3, _GlideRoot.curVertexSize, SSTCP_PKT3_BDDBDD);
       
-      /* Send x, y of the three vertices. This is unrolled instead of looping
-         over an array of the vertex pointers: the vertices are passed in
-         registers on x64, so there is no array to walk from &va, and
-         building one would only add stores. */
-#define SEND_VERTEX_XY(__v) \
-      do { \
-        TRI_SETF(FARRAY((__v), 0)); \
-        TRI_SETF(FARRAY((__v), 4)); \
-      } while (0)
-      SEND_VERTEX_XY(va);
-      SEND_VERTEX_XY(vb);
-      SEND_VERTEX_XY(vc);
-#undef SEND_VERTEX_XY
+      /* The vertices are passed in registers on x64, so they are sent one
+         after the other, unrolled, instead of looping over an array. */
+      TRISETUP_SEND_VERTEX(va);
+      TRISETUP_SEND_VERTEX(vb);
+      TRISETUP_SEND_VERTEX(vc);
       TRI_END;
       GR_CHECK_SIZE();
     }
@@ -164,53 +225,7 @@ GR_DDFUNC(trisetup,
       int vectorIndex;
 
       for(vectorIndex = 0; vectorIndex < ((int)sizeof(vectorArray) / (int)sizeof(float*)); vectorIndex++) {
-        const float* const vector = vectorArray[vectorIndex];
-      
-        /* Triangle vertex coordinages (x, y) */
-        TRI_SETF(vector[0]);
-        TRI_SETF(vector[0]);
-      
-        /* Other triangle parameters */
-        {
-          const int* dataList = gc->tsuDataList;
-
-#if GLIDE_PACKED_RGB
-          {
-            FxBool doColorP = FXFALSE;
-            FxU32 packedColor = 0x00;
-            
-            if (*dataList == (GR_VERTEX_R_OFFSET << 2)) {
-              packedColor = (RGBA_COMP_CLAMP(FARRAY(vector, (GR_VERTEX_B_OFFSET << 2)), B) | 
-                             RGBA_COMP_CLAMP(FARRAY(vector, (GR_VERTEX_G_OFFSET << 2)), G) |
-                             RGBA_COMP_CLAMP(FARRAY(vector, (GR_VERTEX_R_OFFSET << 2)), R));
-              dataList++;
-              doColorP = FXTRUE;
-            }
-
-            if (*dataList == (GR_VERTEX_A_OFFSET << 2)) {
-              packedColor |= RGBA_COMP_CLAMP(FARRAY(vector, (GR_VERTEX_A_OFFSET << 2)), A);
-              dataList++;
-              doColorP = FXTRUE;
-            }
-            
-            if (doColorP) TRI_SET(packedColor);
-          }
-#endif /* GLIDE_PACKED_RGB */
-
-#if GLIDE_FP_CLAMP_TEX
-          while(*dataList != 0) {
-            TRI_SETF(FARRAY(vector, *dataList));
-            dataList++;
-          }
-
-          dataList++;
-#endif /* GLIDE_FP_CLAMP_TEX */
-         
-          while(*dataList != 0) {
-            TRI_SETF_CLAMP(FARRAY(vector, *dataList));
-            dataList++;
-          }
-        }         
+        TRISETUP_SEND_VERTEX(vectorArray[vectorIndex]);
       }
     }
     TRI_END;
@@ -509,9 +524,13 @@ __triDrawn:
 
 
 
+/* The packed colour variants use the same code, the vertex data is sent
+   according to the current packet header (see TRISETUP_SEND_VERTEX). Which
+   one is used is decided in gpci.c: first the one without culling, second the
+   one with (hardware) culling. */
 FxI32 FX_CSTYLE trisetup_rgb(const void* va, const void* vb, const void* vc)
 {
-    return trisetup_cull(va, vb, vc);
+    return trisetup(va, vb, vc);
 }
 
 FxI32 FX_CSTYLE trisetup_cull_rgb(const void* va, const void* vb, const void* vc)
@@ -521,7 +540,7 @@ FxI32 FX_CSTYLE trisetup_cull_rgb(const void* va, const void* vb, const void* vc
 
 FxI32 FX_CSTYLE trisetup_argb(const void* va, const void* vb, const void* vc)
 {
-    return trisetup_cull(va, vb, vc);
+    return trisetup(va, vb, vc);
 }
 
 FxI32 FX_CSTYLE trisetup_cull_argb(const void* va, const void* vb, const void* vc)
