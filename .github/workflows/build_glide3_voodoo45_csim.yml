@@ -51,6 +51,15 @@ jobs:
       run: |
         ctest --output-on-failure
 
+    # The image only has the 32-bit C libraries, GoogleTest also needs the
+    # 32-bit C++ standard library.
+    - name: Install 32-bit C++ Support
+      run: |
+        SUDO=""
+        if [ "$(id -u)" -ne 0 ]; then SUDO=sudo; fi
+        $SUDO apt-get update
+        $SUDO apt-get install -y --no-install-recommends g++-multilib
+
     - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Linux, x32)
       run: |
         mkdir bin_csim_x32

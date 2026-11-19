@@ -8,8 +8,16 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#endif
 
 #include <glide.h>
 #include <csimstats.h>
@@ -35,6 +43,52 @@ CsimStats getStats()
   return stats;
 }
 
+// On Windows, grSstWinOpen needs a window handle, like a real application
+// passes. It is not shown, the fake board does not display anything.
+// Elsewhere Glide takes 0.
+class TestWindow {
+public:
+  TestWindow()
+  {
+#ifdef _WIN32
+    window = CreateWindowExA(0, "STATIC", "Glide CSIM test", WS_POPUP, 0, 0, 640, 480,
+                             NULL, NULL, GetModuleHandleA(NULL), NULL);
+#endif
+  }
+
+  ~TestWindow()
+  {
+#ifdef _WIN32
+    if (window != NULL) DestroyWindow(window);
+#endif
+  }
+
+  TestWindow(const TestWindow &) = delete;
+  TestWindow &operator=(const TestWindow &) = delete;
+
+  // Glide takes window handles as FxU32, Windows keeps them in 32 bits for
+  // that reason, also in 64-bit programs.
+  FxU32 handle() const
+  {
+#ifdef _WIN32
+    return static_cast<FxU32>(reinterpret_cast<uintptr_t>(window));
+#else
+    return 0;
+#endif
+  }
+
+#ifdef _WIN32
+  bool valid() const { return window != NULL; }
+#else
+  bool valid() const { return true; }
+#endif
+
+private:
+#ifdef _WIN32
+  HWND window = NULL;
+#endif
+};
+
 // Glide is initialized for every test, and shut down afterwards.
 class GlideCsim : public ::testing::Test {
 protected:
@@ -51,6 +105,7 @@ protected:
       EXPECT_TRUE(grSstWinClose(context));
     }
     grGlideShutdown();
+    window.reset();
 
     for (const std::string &error : glideErrors) {
       ADD_FAILURE() << "Glide error: " << error;
@@ -60,8 +115,11 @@ protected:
   // Opens a 640x480 window with two color buffers and a depth buffer.
   void openWindow()
   {
+    window.reset(new TestWindow);
+    ASSERT_TRUE(window->valid()) << "could not create the window";
+
     grSstSelect(0);
-    context = grSstWinOpen(0, GR_RESOLUTION_640x480, GR_REFRESH_60Hz,
+    context = grSstWinOpen(window->handle(), GR_RESOLUTION_640x480, GR_REFRESH_60Hz,
                            GR_COLORFORMAT_ARGB, GR_ORIGIN_UPPER_LEFT, 2, 1);
     ASSERT_NE(context, static_cast<GrContext_t>(0)) << "grSstWinOpen failed";
   }
@@ -93,6 +151,7 @@ protected:
   }
 
   GrContext_t context = 0;
+  std::unique_ptr<TestWindow> window;
 };
 
 TEST_F(GlideCsim, FindsTheSimulatedBoard)

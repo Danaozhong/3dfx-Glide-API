@@ -1753,7 +1753,7 @@ typedef struct GrGC_s
                           */
     
     FxU32* fifoPtr;      /* Current write pointer into fifo */
-    unsigned long   fifoRead;     /* Last known hw read ptr. 
+    AnyPtr          fifoRead;     /* Last known hw read ptr. 
                           * If on an sli enabled system this will be
                           * the 'closest' hw read ptr of the sli
                           * master and slave.
@@ -3234,9 +3234,9 @@ extern FxU32 SST_TEXTURE_ALIGN;
 #error "Need HW_BASE_PTR to convert hw address into board address."
 #endif
    
-#define HW_REG_PTR(__b)        ((FxU32*)(((FxU32)(__b)) + HW_REGISTER_OFFSET))
-#define HW_LFB_PTR(__b)        ((FxU32*)(((FxU32)(__b)) + HW_LFB_OFFSET))
-#define HW_TEX_PTR(__b)        ((FxU32*)(((FxU32)(__b)) + HW_TEXTURE_OFFSET))   
+#define HW_REG_PTR(__b)        ((FxU32*)(((AnyPtr)(__b)) + HW_REGISTER_OFFSET))
+#define HW_LFB_PTR(__b)        ((FxU32*)(((AnyPtr)(__b)) + HW_LFB_OFFSET))
+#define HW_TEX_PTR(__b)        ((FxU32*)(((AnyPtr)(__b)) + HW_TEXTURE_OFFSET))   
 
 /* access a floating point array with a byte index */
 #include <fxfarray.h>

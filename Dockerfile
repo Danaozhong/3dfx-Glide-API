@@ -21,6 +21,7 @@ RUN apt-get install -y --no-install-recommends \
     tar \
     nasm \
     gcc-multilib \
+    g++-multilib \
     mingw-w64 \
     ca-certificates
 
