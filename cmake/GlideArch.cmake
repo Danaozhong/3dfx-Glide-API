@@ -21,3 +21,9 @@ if(BUILD_32BIT AND NOT GLIDE_COMPILER_IS_32BIT AND WIN32)
         "BUILD_32BIT=ON requires a 32-bit compiler: use -A Win32 for Visual Studio "
         "or the toolchain file mingw-w64-x86_32.cmake for MinGW.")
 endif()
+
+# GCC 15 compiles C23 by default, in which f() declares a function without
+# parameters and bool is a keyword. The Glide sources predate that.
+if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang" AND NOT MSVC)
+    add_compile_options($<$<COMPILE_LANGUAGE:C>:-std=gnu17>)
+endif()
