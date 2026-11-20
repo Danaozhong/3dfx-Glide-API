@@ -1,10 +1,12 @@
-// Smoke tests of the Glide3x library against the fake chip simulator
+// Smoke tests of the Glide3x library against the chip simulator
 // (swlibs/csim).
 //
 // They go through the life cycle of a Glide application: initialize, open a
 // window, draw frames, close and shut down. They fail if Glide reports an
-// error, does not find the board, or the commands do not arrive in the
-// command FIFO. What is drawn is not checked.
+// error, does not find the board, the commands do not arrive in the command
+// FIFO, or the simulated chip renders something else than expected.
+//
+// Set CSIM_DUMP to a file name prefix to see the swapped images.
 
 #include <gtest/gtest.h>
 
@@ -24,6 +26,8 @@
 
 #include <glide.h>
 #include <csimstats.h>
+
+#include "scene.hpp"
 
 namespace {
 
@@ -58,8 +62,34 @@ CsimStats getStats()
   return stats;
 }
 
+// The image of the last swap, 0xAARRGGBB.
+class SwappedImage {
+public:
+  explicit SwappedImage(unsigned int board) { valid_ = csimGetSwappedImage(board, &image_) != 0; }
+
+  bool valid() const { return valid_; }
+  unsigned int width() const { return image_.width; }
+  unsigned int height() const { return image_.height; }
+  unsigned int at(unsigned int x, unsigned int y) const { return image_.pixels[y * width() + x]; }
+
+  unsigned int count(unsigned int argb) const
+  {
+    unsigned int n = 0;
+    for (unsigned int i = 0; i < width() * height(); i++) n += (image_.pixels[i] == argb);
+    return n;
+  }
+
+private:
+  CsimImage image_{};
+  bool valid_ = false;
+};
+
+unsigned int red(unsigned int argb) { return (argb >> 16) & 0xFF; }
+unsigned int green(unsigned int argb) { return (argb >> 8) & 0xFF; }
+unsigned int blue(unsigned int argb) { return argb & 0xFF; }
+
 // On Windows, grSstWinOpen needs a window handle, like a real application
-// passes. It is not shown, the fake board does not display anything.
+// passes. It is not shown, the simulated board does not display anything.
 // Elsewhere Glide takes 0.
 class TestWindow {
 public:
@@ -207,6 +237,117 @@ TEST_F(GlideCsim, DrawsFramesThroughTheCommandFifo)
   EXPECT_GE(after.fifoWraps - before.fifoWraps, 1u);
   EXPECT_EQ(after.foreignAccesses, before.foreignAccesses)
       << "Glide accessed hardware outside of the simulated board";
+
+  EXPECT_EQ(after.fifoErrors, before.fifoErrors);
+  EXPECT_EQ(after.unsimulated, before.unsimulated);
+  EXPECT_EQ(after.swaps - before.swaps, static_cast<unsigned int>(numFrames));
+  EXPECT_EQ(after.fastFills - before.fastFills, static_cast<unsigned int>(numFrames));
+}
+
+// The colors are exact in 16 and 32 bits per pixel.
+TEST_F(GlideCsim, ClearsTheScreen)
+{
+  const GrColor_t color = 0xFF8400FF;
+
+  ASSERT_NO_FATAL_FAILURE(openWindow());
+  grDitherMode(GR_DITHER_DISABLE);
+  grBufferClear(color, 0, 0xFFFF);
+  grBufferSwap(1);
+  grFinish();
+
+  const SwappedImage image(0);
+  ASSERT_TRUE(image.valid());
+  ASSERT_EQ(image.width(), 640u);
+  ASSERT_EQ(image.height(), 480u);
+  EXPECT_EQ(image.count(color), 640u * 480u);
+}
+
+TEST_F(GlideCsim, DrawsGouraudShadedTriangles)
+{
+  ASSERT_NO_FATAL_FAILURE(openWindow());
+  setupColoredTriangles();
+  grDitherMode(GR_DITHER_DISABLE);
+
+  const CsimStats before = getStats();
+  grBufferClear(0xFF000000, 0, 0xFFFF);
+  // Flat red, the top left half of a 200 x 200 square.
+  const Vertex flat[3] = {{100.0f, 100.0f, 255.0f, 0.0f, 0.0f},
+                          {300.0f, 100.0f, 255.0f, 0.0f, 0.0f},
+                          {100.0f, 300.0f, 255.0f, 0.0f, 0.0f}};
+  grDrawTriangle(&flat[0], &flat[1], &flat[2]);
+  // Red, green and blue corners.
+  const Vertex shaded[3] = {{400.0f, 100.0f, 255.0f, 0.0f, 0.0f},
+                            {600.0f, 100.0f, 0.0f, 255.0f, 0.0f},
+                            {400.0f, 300.0f, 0.0f, 0.0f, 255.0f}};
+  grDrawTriangle(&shaded[0], &shaded[1], &shaded[2]);
+  grBufferSwap(1);
+  grFinish();
+  const CsimStats after = getStats();
+
+  EXPECT_EQ(after.fifoErrors, before.fifoErrors);
+  EXPECT_EQ(after.unsimulated, before.unsimulated);
+
+  const SwappedImage image(0);
+  ASSERT_TRUE(image.valid());
+  ASSERT_EQ(image.width(), 640u);
+  ASSERT_EQ(image.height(), 480u);
+
+  // The pixel centers of row y are inside for x < 299 - y + 100, so the
+  // flat triangle has 199 + 198 + ... + 0 pixels, plus the ones on the
+  // diagonal that the fill rule decides.
+  const unsigned int redPixels = image.count(0xFFFF0000);
+  EXPECT_GE(redPixels, 199u * 200u / 2u);
+  EXPECT_LE(redPixels, 200u * 201u / 2u);
+  EXPECT_EQ(image.at(100, 100), 0xFFFF0000u);
+  EXPECT_EQ(image.at(297, 100), 0xFFFF0000u);
+  EXPECT_EQ(image.at(100, 297), 0xFFFF0000u);
+  EXPECT_EQ(image.at(99, 150), 0xFF000000u);
+  EXPECT_EQ(image.at(150, 99), 0xFF000000u);
+  EXPECT_EQ(image.at(250, 250), 0xFF000000u);
+
+  // Near the corners, and where the colors are 1/2, 1/4 and 1/4.
+  EXPECT_GE(red(image.at(400, 100)), 0xF0u);
+  EXPECT_GE(green(image.at(597, 101)), 0xF0u);
+  EXPECT_GE(blue(image.at(401, 297)), 0xF0u);
+  const unsigned int mixed = image.at(450, 150);
+  EXPECT_NEAR(red(mixed), 126.0, 8.0);
+  EXPECT_NEAR(green(mixed), 64.0, 8.0);
+  EXPECT_NEAR(blue(mixed), 64.0, 8.0);
+}
+
+// The scene of examples/csim_teapot: depth buffered triangle strips.
+TEST_F(GlideCsim, DrawsTheUtahTeapot)
+{
+  ASSERT_NO_FATAL_FAILURE(openWindow());
+
+  const CsimStats before = getStats();
+  teapot::Scene scene;
+  scene.draw(30.0f, 640.0f, 480.0f);
+  grBufferSwap(1);
+  grFinish();
+  const CsimStats after = getStats();
+
+  EXPECT_EQ(after.fifoErrors, before.fifoErrors);
+  EXPECT_EQ(after.unsimulated, before.unsimulated);
+
+  const SwappedImage image(0);
+  ASSERT_TRUE(image.valid());
+  ASSERT_EQ(image.width(), 640u);
+  ASSERT_EQ(image.height(), 480u);
+
+  // The red teapot covers about 41000 pixels, in front of the floor.
+  unsigned int teapotPixels = 0;
+  for (unsigned int y = 0; y < image.height(); y++) {
+    for (unsigned int x = 0; x < image.width(); x++) {
+      const unsigned int p = image.at(x, y);
+      teapotPixels += (red(p) > 60) && (red(p) > 2 * green(p)) && (red(p) > 2 * blue(p));
+    }
+  }
+  EXPECT_GT(teapotPixels, 35000u);
+  EXPECT_LT(teapotPixels, 47000u);
+  EXPECT_GT(red(image.at(300, 250)), 100u) << "teapot body";
+  EXPECT_GT(blue(image.at(320, 2)), red(image.at(320, 2))) << "sky";
+  EXPECT_GT(green(image.at(20, 470)), 80u) << "floor";
 }
 
 // The boards can be anywhere in the address space of 64-bit programs, so

@@ -1,9 +1,13 @@
-name: Build Glide3x for Voodoo4/5 Library (HAL_CSIM, chip simulator stub)
+name: Build Glide3x for Voodoo4/5 Library (HAL_CSIM, chip simulator)
 
 # Builds Glide3x with HAL_CSIM, where the hardware is accessed through the
-# chip simulator interface instead of minihwc. The simulator is replaced by a
-# fake board (swlibs/csim), which the integration tests in tests/csim run
-# against: on Linux (GCC, x64 and x32) and on Windows (MSVC, x64 and x32).
+# chip simulator interface instead of minihwc. The chip simulator
+# (swlibs/csim) emulates a single Napalm chip: it executes the command FIFO
+# and renders Gouraud shaded, z-buffered and dithered triangles into the
+# frame buffer. Textures, fog, alpha blending and SLI are not simulated yet.
+# The integration tests in tests/csim render through Glide and check the
+# swapped images: on Linux (GCC, x64 and x32) and on Windows (MSVC, x64 and
+# x32).
 # The MinGW cross builds do not build the tests: GoogleTest needs std::mutex,
 # which MinGW with the win32 thread model does not have.
 
@@ -51,6 +55,23 @@ jobs:
       working-directory: bin_csim_x64
       run: |
         ctest --output-on-failure
+
+    - name: Render the Teapot Example (HAL_CSIM, Linux, x64)
+      working-directory: bin_csim_x64
+      run: |
+        ./examples/csim_teapot/csim_teapot 1 csim_teapot_${{ matrix.build_type }}_
+
+    - name: Upload the Rendered Teapot
+      id: teapot
+      uses: actions/upload-artifact@v7
+      with:
+        path: bin_csim_x64/csim_teapot_${{ matrix.build_type }}_000.png
+        archive: false
+
+    - name: Link the Rendered Teapot in the Summary
+      run: |
+        echo "### Teapot rendered on the chip simulator (${{ matrix.build_type }})" >> "$GITHUB_STEP_SUMMARY"
+        echo "[csim_teapot_${{ matrix.build_type }}_000.png](${{ steps.teapot.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
 
     - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Linux, x32)
       run: |

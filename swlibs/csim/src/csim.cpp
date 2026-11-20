@@ -1,13 +1,4 @@
-// Fake chip simulator (CSIM) and hardware abstraction layer (HAL) for Glide
-// built with -DHAL_CSIM, see csim.h.
-//
-// Glide sets the simulated boards (board.hpp) up through the fxHal* functions
-// and accesses their address space through halLoad32/halStore32 and friends.
-// Nothing is executed or rendered.
-//
-// If CSIM_TRACE is set to a file name, all writes into board memory are
-// logged there as "W <board> <offset> <value>".
-
+// The chip simulator and HAL functions of csim.h, csimstats.h and fxhal.h.
 #include <array>
 #include <cstdio>
 #include <cstdlib>
@@ -19,33 +10,72 @@
 namespace csim {
 namespace {
 
-constexpr FxU32 kVendorId = 0x121a;
+constexpr FxU32 kVendorId = 0x121a;  ///< 3dfx
 
+/// @brief The simulated boards, and the HAL state Glide sees.
 class Simulator {
 public:
-  // Board 'index', created on first use. nullptr if it cannot be created.
+  /**
+   * @brief A board, created on first use.
+   * @param[in] index Index of the board.
+   * @return nullptr if it cannot be created.
+   */
   Board *board(FxU32 index);
 
-  // The board containing 'addr', and the offset of 'addr' in it.
+  /**
+   * @brief The board containing an address.
+   * @param[in] addr An address of the program.
+   * @param[out] offset Offset of @p addr in the board.
+   * @return nullptr if no board contains @p addr.
+   */
   Board *find(const volatile void *addr, FxU32 &offset);
+  /**
+   * @brief The board containing an address.
+   * @param[in] addr An address of the program.
+   * @return nullptr if no board contains @p addr.
+   */
   Board *find(const volatile void *addr)
   {
     FxU32 offset;
     return find(addr, offset);
   }
 
+  /**
+   * @brief The index of a board.
+   * @param[in] board One of the boards of the simulator.
+   */
   FxU32 indexOf(const Board &board) const
   {
     return static_cast<FxU32>(&board - boards_.data());
   }
 
+  /**
+   * @brief A HAL read, see Board::specialRead.
+   * @param[in] addr The address read.
+   */
   template <typename T>
   T load(volatile void *addr);
+  /**
+   * @brief A HAL write, executed by the board of the address.
+   * @param[in] addr The address written.
+   * @param[in] data The value written.
+   */
   template <typename T>
   void store(volatile void *addr, T data);
 
+  /**
+   * @brief A board if it was created.
+   * @param[in] index Index of the board.
+   * @return nullptr if the board was not created.
+   */
+  const Board *existing(FxU32 index) const
+  {
+    return ((index < boards_.size()) && boards_[index].exists()) ? &boards_[index] : nullptr;
+  }
+
   HalInfo &halInfo() { return halInfo_; }
   CsimStats &stats() { return stats_; }
+  /// @brief Flushes the CSIM_TRACE file.
   void flushTrace()
   {
     if (trace_) std::fflush(trace_.get());
@@ -69,7 +99,7 @@ Board *Simulator::board(FxU32 index)
   Board &board = boards_[index];
   if (board.exists()) return &board;
 
-  if (!board.create()) {
+  if (!board.create(stats_)) {
     std::fprintf(stderr, "csim: could not allocate the memory of board %u\n", unsigned(index));
     return nullptr;
   }
@@ -146,13 +176,9 @@ void Simulator::store(volatile void *addr, T data)
                  unsigned(offset), unsigned(data));
   }
 
-  switch (board->written(offset, sizeof(T))) {
+  switch (board->written(offset, sizeof(T), data)) {
   case Write::Register:
     stats_.regWrites++;
-    break;
-  case Write::FifoWrap:
-    stats_.fifoWraps++;
-    stats_.fifoWords++;
     break;
   case Write::Fifo:
     stats_.fifoWords++;
@@ -162,6 +188,10 @@ void Simulator::store(volatile void *addr, T data)
 
 Simulator simulator;
 
+/**
+ * @brief FXTRUE if an address is in the memory of a board.
+ * @param[in] addr An address of the program.
+ */
 FxBool isBoard(const volatile void *addr)
 {
   return (simulator.find(addr) != nullptr) ? FXTRUE : FXFALSE;
@@ -183,6 +213,16 @@ extern "C" {
 void csimGetStats(CsimStats *stats)
 {
   if (stats != nullptr) *stats = simulator.stats();
+}
+
+int csimGetSwappedImage(unsigned int board, CsimImage *image)
+{
+  const Board *b = simulator.existing(board);
+  if ((b == nullptr) || (image == nullptr) || !b->chip().hasSwappedImage()) return 0;
+  image->width = b->chip().imageWidth();
+  image->height = b->chip().imageHeight();
+  image->pixels = b->chip().imagePixels();
+  return 1;
 }
 
 int csimIsBoardMemory(const void *p, unsigned int size)
@@ -305,7 +345,7 @@ FxBool FX_CALL fxHalInitGamma(SstRegs *sst, FxFloat)     { return isBoard(sst); 
 FxBool FX_CALL fxHalInitGammaRGB(SstRegs *sst, FxFloat, FxFloat, FxFloat) { return isBoard(sst); }
 FxBool FX_CALL fxHalInitVideo(SstRegs *sst, FxU32, FxU32, FxVideoTimingInfo *) { return isBoard(sst); }
 
-// The fake chip is always idle and never shut down.
+// The simulated chip is always idle and never shut down.
 FxBool FX_CALL fxHalIdle(SstRegs *sst)       { return isBoard(sst); }
 FxBool FX_CALL fxHalIdleNoNop(SstRegs *sst)  { return isBoard(sst); }
 FxBool FX_CALL fxHalIdle2(SstRegs *sst)      { return isBoard(sst); }

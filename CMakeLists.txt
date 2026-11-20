@@ -71,6 +71,10 @@ add_subdirectory(common)
 add_subdirectory(swlibs)
 add_subdirectory(glide3x)
 
+if(BUILD_HAL_CSIM)
+    add_subdirectory(examples)
+endif()
+
 if(GLIDE_BUILD_TESTS)
     add_subdirectory(tests)
 endif()

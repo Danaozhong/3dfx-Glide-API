@@ -16,12 +16,19 @@ namespace csim {
 
 namespace {
 
-// Status of an idle chip: PCI FIFO free, not busy, no swaps pending.
+/// @brief Status of an idle chip: PCI FIFO free, not busy, no swaps pending.
 constexpr FxU32 kIdleStatus = SST_PCIFIFO_FREE | SST_VRETRACE;
 
-// Registers which are aliased every 0x400 bytes in the 3D space, see SST_CHIP.
+/// @brief Registers are aliased every 0x400 bytes in the 3D space, see SST_CHIP.
 constexpr FxU32 k3dAliasMask = 0x3FF;
+/// @brief The 3D registers of all chips.
+constexpr FxU32 k3dRegisterSpace = 0x4000;
 
+/**
+ * @brief Allocates zeroed memory.
+ * @param[in] size Bytes to allocate.
+ * @return nullptr on failure.
+ */
 void *allocate(std::size_t size)
 {
 #if defined(_WIN64)
@@ -35,6 +42,11 @@ void *allocate(std::size_t size)
 #endif
 }
 
+/**
+ * @brief Frees memory of allocate().
+ * @param[in] p The memory.
+ * @param[in] size The size passed to allocate().
+ */
 void release(void *p, std::size_t size)
 {
 #ifdef _WIN32
@@ -52,10 +64,12 @@ Board::~Board()
   if (base_ != nullptr) release(base_, kBoardSize);
 }
 
-bool Board::create()
+bool Board::create(CsimStats &stats)
 {
   base_ = static_cast<FxU8 *>(allocate(kBoardSize));
-  return base_ != nullptr;
+  if (base_ == nullptr) return false;
+  chip_.attach(base_, MBYTE(kFbiMemMB), stats);
+  return true;
 }
 
 SstRegs *Board::regs() const
@@ -84,7 +98,7 @@ bool Board::initCmdFifo(FxU32 fifoStart, FxU32 size, bool disableHoles)
 
   fifoStart_ = fifoStart;
   fifoSize_ = size;
-  fifoReadPtr_ = fifoStart;
+  chip_.initCmdFifo(fifoStart, size);
 
   FxU32 baseSize = ((size >> 12) - 1) | SST_EN_CMDFIFO;
   if (disableHoles) baseSize |= SST_CMDFIFO_DISABLE_HOLES;
@@ -106,19 +120,18 @@ bool Board::isFifoWrite(FxU32 offset) const
          (offset < SST_RAW_LFB_OFFSET + fifoStart_ + fifoSize_);
 }
 
-Write Board::written(FxU32 offset, FxU32 size)
+Write Board::written(FxU32 offset, FxU32 size, FxU32 data)
 {
-  if ((size != 4) || !isFifoWrite(offset)) return Write::Register;
+  if (size != 4) return Write::Register;
 
-  // Glide continues at the start of the FIFO after it wrote the jump packet
-  // at the end. Within the FIFO it writes in increasing order.
-  const FxU32 fbOffset = offset - SST_RAW_LFB_OFFSET;
-  if ((fbOffset == fifoStart_) && (fifoReadPtr_ != fifoStart_)) {
-    fifoReadPtr_ = fbOffset + 4;
-    return Write::FifoWrap;
+  if (isFifoWrite(offset)) {
+    chip_.fifoWrite(offset - SST_RAW_LFB_OFFSET, data);
+    return Write::Fifo;
   }
-  if (fbOffset + 4 > fifoReadPtr_) fifoReadPtr_ = fbOffset + 4;
-  return Write::Fifo;
+  if ((offset >= SST_3D_OFFSET) && (offset < SST_3D_OFFSET + k3dRegisterSpace)) {
+    chip_.store3d(offset - SST_3D_OFFSET, data);
+  }
+  return Write::Register;
 }
 
 std::optional<FxU32> Board::specialRead(FxU32 offset) const
@@ -134,7 +147,7 @@ std::optional<FxU32> Board::specialRead(FxU32 offset) const
   }
 
   if (offset == SST_CMDAGP_OFFSET + offsetof(SstCRegs, cmdFifo0.readPtrL)) {
-    return fifoReadPtr_;
+    return chip_.fifoReadPtr();
   }
 
   if ((offset == SST_CMDAGP_OFFSET + offsetof(SstCRegs, cmdFifo0.readPtrH)) ||
