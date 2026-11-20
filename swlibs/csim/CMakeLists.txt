@@ -1,16 +1,22 @@
-# Stub of the 3dfx chip simulator, used by the HAL_CSIM build of Glide
+# Simulator of the 3dfx Napalm chip, used by the HAL_CSIM build of Glide
 # (see BUILD_HAL_CSIM in the top level CMakeLists.txt).
 #
-# It contains the interface headers and a fake board that Glide can
-# initialize and send commands to, see include/csim.h. To build against a
-# real simulator, replace the contents of this directory with its csim.h and
-# sources.
+# It contains the interface headers and a simulated board that Glide can
+# initialize and render to, see include/csim.h.
 #
-# The fake board is written in C++, its interface to Glide is C.
+# The board is written in C++, its interface to Glide is C.
 
 add_library(csim STATIC
     src/board.cpp
+    src/color_combine.cpp
+    src/command_fifo.cpp
     src/csim.cpp
+    src/fbi_pixel_pipeline.cpp
+    src/frame_buffer.cpp
+    src/rasterization.cpp
+    src/registers.cpp
+    src/render_state.cpp
+    src/triangle_setup.cpp
 )
 target_compile_features(csim PRIVATE cxx_std_17)
 set_target_properties(csim PROPERTIES CXX_EXTENSIONS OFF)
@@ -18,7 +24,7 @@ set_target_properties(csim PROPERTIES CXX_EXTENSIONS OFF)
 # Consumers need csim.h, tests csimstats.h.
 target_include_directories(csim PUBLIC include)
 
-# The stub implements the interface declared in fxhal.h of Glide3x, which
+# The board implements the interface declared in fxhal.h of Glide3x, which
 # has to be compiled with the same configuration as Glide.
 target_include_directories(csim PRIVATE
     ${CMAKE_SOURCE_DIR}/glide3x/h5/incsrc
