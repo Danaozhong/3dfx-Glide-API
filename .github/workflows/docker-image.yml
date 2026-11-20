@@ -1,18 +1,59 @@
 name: Docker Image CI
 
+# Builds the image the Linux and MinGW jobs run in, and publishes it to the
+# GitHub container registry as ghcr.io/danaozhong/3dfx_glide_dev_env_linux_x64.
+# Pull requests only build it.
+
 on:
   push:
     branches: [ master ]
+    paths: [ Dockerfile, .github/workflows/docker-image.yml ]
   pull_request:
     branches: [ master ]
+    paths: [ Dockerfile, .github/workflows/docker-image.yml ]
+  workflow_dispatch:
+
+env:
+  IMAGE: ghcr.io/danaozhong/3dfx_glide_dev_env_linux_x64
 
 jobs:
 
   build:
 
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --tag 3dfx_glide_build_env:$(date +%s)
+
+    - uses: docker/setup-buildx-action@v3
+
+    - name: Log in to the GitHub Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Image Tags
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.IMAGE }}
+        tags: |
+          type=raw,value=latest,enable={{is_default_branch}}
+          type=raw,value=ubuntu-26.04,enable={{is_default_branch}}
+          type=sha
+
+    - name: Build and Push the Docker Image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
