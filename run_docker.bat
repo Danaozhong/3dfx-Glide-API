@@ -1,1 +1,1 @@
-docker run --rm -i -t -v %cd%:/home/workspace/glide danaozhong/3dfx_glide_dev_env_linux_x64:latest bash 
+docker run --rm -i -t -v %cd%:/home/workspace/glide ghcr.io/danaozhong/3dfx_glide_dev_env_linux_x64:latest bash 
