@@ -17,7 +17,7 @@ jobs:
       run:
         working-directory: "glide3x/cvg"
     container:
-      image: 'danaozhong/3dfx_glide_dev_env_linux_x64:latest'
+      image: 'ghcr.io/danaozhong/3dfx_glide_dev_env_linux_x64:latest'
       
     env:
       # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
