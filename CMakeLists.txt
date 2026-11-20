@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.13)
 
-PROJECT(Glide3x VERSION 1.0 DESCRIPTION "Glide3x API for Voodoo3/4/5" LANGUAGES C ASM_NASM)
+PROJECT(Glide3x VERSION 1.0 DESCRIPTION "Glide3x API for Voodoo3/4/5" LANGUAGES C CXX ASM_NASM)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(GlideArch)
@@ -17,8 +17,6 @@ OPTION(GLIDE_BUILD_TESTS
        OFF)
 
 if(GLIDE_BUILD_TESTS)
-    # GoogleTest is C++.
-    enable_language(CXX)
     enable_testing()
 endif()
 
