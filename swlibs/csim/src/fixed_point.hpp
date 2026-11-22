@@ -68,6 +68,40 @@ constexpr FxU32 mask(int n) { return 0xFFFFFFFFu >> (32 - n); }
  */
 constexpr FxI64 mask64(int n) { return static_cast<FxI64>(~FxU64{0} >> (64 - n)); }
 
+/**
+ * @brief Brings the integer part of an iterator into [0, @p max], @p step
+ * being its smallest increment.
+ *
+ * Out of range it saturates if @p clamp is set. Without clamping, one step
+ * past either end still saturates, as the iteration can overshoot an edge of
+ * the triangle by one; anything further wraps around.
+ *
+ * @param[in] value The integer part of the iterator.
+ * @param[in] max The largest value, all ones.
+ * @param[in] step The smallest increment.
+ * @param[in] clamp Saturate instead of wrapping.
+ */
+constexpr FxU32 saturateOrWrap(FxI32 value, FxI32 max, FxI32 step, bool clamp)
+{
+  if (value >= 0 && value <= max) return static_cast<FxU32>(value);
+  if (clamp || value == -step || value == max + step) {
+    return (value < 0) ? 0 : static_cast<FxU32>(max);
+  }
+  return static_cast<FxU32>(value) & static_cast<FxU32>(max);
+}
+
+/**
+ * @brief An 8-bit channel from a 12.12 color iterator.
+ * @param[in] value The iterator.
+ * @param[in] clamp Saturate instead of wrapping, see saturateOrWrap().
+ */
+constexpr FxU8 clampIterator(FxI32 value, bool clamp)
+{
+  return static_cast<FxU8>(saturateOrWrap(
+      signExtend(static_cast<FxU32>(value) >> SST_RGBA_FRACBITS, 8 + kIteratorOverflowBits), 0xFF, 1,
+      clamp));
+}
+
 }  // namespace csim
 
 #endif  // CSIM_FIXED_POINT_HPP

@@ -157,6 +157,7 @@ RenderState RenderState::decode(const SstRegs &s, const SstIORegs &io)
   r.clip1Exclusive = (s.clipBottomTop1 & SST_RECTCLIP1_EX) != 0;
   r.clip1Rect = decodeClipRect(s.clipLeftRight1, s.clipBottomTop1, 0x0FFF);
 
+  r.texture = (fbzCP & SST_ENTEXTUREMAP) != 0;
   r.clampIterators = (fbzCP & SST_RGBAZ_CLAMP) != 0;
   r.color0 = s.c0;
   r.color1 = s.c1;
@@ -170,7 +171,6 @@ RenderState RenderState::decode(const SstRegs &s, const SstIORegs &io)
   r.combine.rgbReverse = (fbzCP & SST_CC_REVERSE_BLEND) ? 0x00 : 0xFF;
   r.combine.alphaReverse = (fbzCP & SST_CCA_REVERSE_BLEND) ? 0x00 : 0xFF;
   r.combine.combineMode = cm;
-  r.combine.color1Alpha = static_cast<FxU8>(s.c1 >> 24);
 
   r.alphaMask = (fbz & SST_ENALPHAMASK) != 0;
   r.chromaKey = (fbz & SST_ENCHROMAKEY) != 0;
@@ -201,7 +201,7 @@ RenderState RenderState::decode(const SstRegs &s, const SstIORegs &io)
   r.stencilWriteMask = (stencilMode & SST_STENCIL_WMASK) >> SST_STENCIL_WMASK_SHIFT;
   r.stencilRef = (stencilMode & SST_STENCIL_REF) >> SST_STENCIL_REF_SHIFT;
 
-  r.needsUnsimulated = (fbzCP & SST_ENTEXTUREMAP) || (s.fogMode & SST_ENFOGGING) ||
+  r.needsUnsimulated = (s.fogMode & SST_ENFOGGING) ||
                        (alp & SST_ENALPHABLEND) || (stencilMode & SST_STENCIL_ENABLE) ||
                        (fbz & (SST_WBUFFER | SST_ENSTIPPLE)) || (s.aaCtrl & SST_AA_CONTROL_AA_ENABLE);
   return r;

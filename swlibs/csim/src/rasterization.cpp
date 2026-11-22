@@ -73,6 +73,18 @@ FxI32 adjust(FxI32 dpdx, FxI32 dpdy, int dx, int dy)
 }
 
 /**
+ * @brief Sub-pixel correction of a 32-bit texture parameter.
+ * @param[in] dpdx Gradient of the parameter in x.
+ * @param[in] dpdy Gradient of the parameter in y.
+ * @param[in] dx Distance in x, .4 format.
+ * @param[in] dy Distance in y, .4 format.
+ */
+FxI64 adjustTexture(FxI32 dpdx, FxI32 dpdy, int dx, int dy)
+{
+  return ((dx * FxI64{dpdx}) >> SST_XY_FRACBITS) + ((dy * FxI64{dpdy}) >> SST_XY_FRACBITS);
+}
+
+/**
  * @brief Sub-pixel correction of Z along one axis.
  * @param[in] dz Gradient of Z along the axis.
  * @param[in] d Distance along the axis, .4 format.
@@ -113,6 +125,20 @@ FxI64 iterateZ(FxI64 start, FxI64 dzdx, FxI64 dzdy, int dx, int dy)
   return static_cast<FxI64>(z) & mask64(kZIteratorBits);
 }
 
+/**
+ * @brief A texture parameter, @p dx and @p dy pixels from @p start, without
+ * wrapping around.
+ * @param[in] start The parameter at the start pixel.
+ * @param[in] dpdx Gradient in x.
+ * @param[in] dpdy Gradient in y.
+ * @param[in] dx Pixels in x from the start pixel.
+ * @param[in] dy Pixels in y from the start pixel.
+ */
+FxI64 iterateTexture(FxI64 start, FxI32 dpdx, FxI32 dpdy, int dx, int dy)
+{
+  return start + FxI64{dx} * dpdx + FxI64{dy} * dpdy;
+}
+
 }  // namespace
 
 void Rasterizer::setupTriangle(const RenderState &state, ZIterator &z)
@@ -133,7 +159,18 @@ void Rasterizer::setupTriangle(const RenderState &state, ZIterator &z)
   p.b = s.b;
   p.a = s.a;
   p.z64 = z.start;
+  SstRegs &t = context_.tmu(0);
+  p.tmu0.s = t.s;
+  p.tmu0.t = t.t;
+  p.tmu0.w = t.w;
   if (s.fbzColorPath & SST_PARMADJUST) {
+    p.tmu0.s += adjustTexture(t.dsdx, t.dsdy, dx, dy);
+    p.tmu0.t += adjustTexture(t.dtdx, t.dtdy, dx, dy);
+    p.tmu0.w += adjustTexture(t.dwdx, t.dwdy, dx, dy);
+    t.s = static_cast<FxI32>(p.tmu0.s);
+    t.t = static_cast<FxI32>(p.tmu0.t);
+    t.w = static_cast<FxI32>(p.tmu0.w);
+
     p.r += adjust(s.drdx, s.drdy, dx, dy);
     p.g += adjust(s.dgdx, s.dgdy, dx, dy);
     p.b += adjust(s.dbdx, s.dbdy, dx, dy);
@@ -169,6 +206,12 @@ void Rasterizer::setupTriangle(const RenderState &state, ZIterator &z)
 void Rasterizer::triangle(const RenderState &state, ZIterator &z)
 {
   setupTriangle(state, z);
+  if (state.texture) {
+    tmu0_.beginTriangle();
+    // TMU1 passes 0 on unless it is active.
+    textureUnsimulated_ = tmu0_.needsUnsimulated() ||
+                          (tmu0_.usesOther() && SST_TMU_ACTIVE(context_.tmu(1).textureMode));
+  }
 
   SstRegs &s = context_.sst();
   s.fbiTrianglesOut = (s.fbiTrianglesOut + 1) & 0xFFFFFF;
@@ -209,6 +252,7 @@ void Rasterizer::span(int y, const Edge &edge1, const RenderState &state)
 
   const FxI32 drdx = s.drdx, dgdx = s.dgdx, dbdx = s.dbdx, dadx = s.dadx;
   const FxI32 drdy = s.drdy, dgdy = s.dgdy, dbdy = s.dbdy, dady = s.dady;
+  const SstRegs &t = context_.tmu(0);
   const int dy = y - start_.y;
 
   for (int x = xStart; x < xEnd; x++) {
@@ -217,7 +261,7 @@ void Rasterizer::span(int y, const Edge &edge1, const RenderState &state)
     if (!(in0 & in1)) continue;
 
     // sstPixel
-    if (state.needsUnsimulated) context_.stats->unsimulated++;
+    if (state.needsUnsimulated || (state.texture && textureUnsimulated_)) context_.stats->unsimulated++;
     if (!rectClip(x, y, state)) continue;
 
     const int dx = x - start_.x;
@@ -229,6 +273,17 @@ void Rasterizer::span(int y, const Edge &edge1, const RenderState &state)
     f.b = iterate(start_.b, dbdx, dbdy, dx, dy);
     f.a = iterate(start_.a, dadx, dady, dx, dy);
     f.z64 = iterateZ(start_.z64, dzdx_, dzdy_, dx, dy);
+    if (state.texture) {
+      f.tmu0.s = iterateTexture(start_.tmu0.s, t.dsdx, t.dsdy, dx, dy);
+      f.tmu0.t = iterateTexture(start_.tmu0.t, t.dtdx, t.dtdy, dx, dy);
+      f.tmu0.w = iterateTexture(start_.tmu0.w, t.dwdx, t.dwdy, dx, dy);
+      const FxU8 iterated[4] = {clampIterator(f.r, state.clampIterators),
+                                clampIterator(f.g, state.clampIterators),
+                                clampIterator(f.b, state.clampIterators),
+                                clampIterator(f.a, state.clampIterators)};
+      constexpr FxU8 kTmu1Color[4] = {};
+      tmu0_.shade(f.tmu0, iterated, kTmu1Color, f.texture);
+    }
     fbiPixelPipeline_.shade(f, state);
   }
 }

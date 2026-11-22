@@ -66,7 +66,6 @@ struct CombineConfig {
   FxU32 rgbReverse = 0;    ///< 0 for the reverse blend, else 0xFF.
   FxU32 alphaReverse = 0;  ///< 0 for the reverse blend, else 0xFF.
   FxU32 combineMode = 0;   ///< Invert and shift bits, SST_CM_TC_* / SST_CM_TCA_* layout.
-  FxU8 color1Alpha = 0;    ///< Alpha of color 1.
 };
 
 /// @brief The decoded mode registers for one triangle or fastfill.
@@ -99,6 +98,7 @@ struct RenderState {
    * @name Color path
    * @{
    */
+  bool texture = false;         ///< The TMUs deliver the texture color.
   bool clampIterators = false;  ///< Clamp the color and depth iterators instead of wrapping.
   FxU32 color0 = 0;             ///< Constant color 0, 0xAARRGGBB.
   FxU32 color1 = 0;             ///< Constant color 1, 0xAARRGGBB.
@@ -145,7 +145,7 @@ struct RenderState {
   FxU32 stencilRef = 0;
   /// @}
 
-  /// Texture, fog, alpha blending, stencil test, W-buffer, stipple or AA.
+  /// Fog, alpha blending, stencil test, W-buffer, stipple or AA.
   bool needsUnsimulated = false;
 };
 

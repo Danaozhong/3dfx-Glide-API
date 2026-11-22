@@ -10,6 +10,7 @@
 #include "fbi_pixel_pipeline.hpp"
 #include "fragment.hpp"
 #include "render_state.hpp"
+#include "texture_unit.hpp"
 
 namespace csim {
 
@@ -39,10 +40,11 @@ class Rasterizer {
 public:
   /**
    * @param[in] context The registers and statistics of the chip.
+   * @param[in,out] tmu0 Textures the pixels.
    * @param[in,out] fbiPixelPipeline Receives the pixels.
    */
-  Rasterizer(const ChipContext &context, FbiPixelPipeline &fbiPixelPipeline)
-      : context_(context), fbiPixelPipeline_(fbiPixelPipeline)
+  Rasterizer(const ChipContext &context, TextureUnit &tmu0, FbiPixelPipeline &fbiPixelPipeline)
+      : context_(context), tmu0_(tmu0), fbiPixelPipeline_(fbiPixelPipeline)
   {
   }
 
@@ -92,12 +94,14 @@ private:
   bool rectClip(int x, int y, const RenderState &state) const;
 
   const ChipContext &context_;
+  TextureUnit &tmu0_;
   FbiPixelPipeline &fbiPixelPipeline_;
 
   Edge edge0_;      ///< Major edge, A to C.
   Edge edge1_;      ///< Minor edge, A to B; B to C is set up per triangle.
   Fragment start_;  ///< Parameters at the pixel of vertex A.
   FxI64 dzdx_ = 0, dzdy_ = 0;
+  bool textureUnsimulated_ = false;  ///< The texturing of the triangle is not fully simulated.
 };
 
 }  // namespace csim

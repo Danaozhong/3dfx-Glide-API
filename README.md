@@ -34,7 +34,7 @@ The toolchain is ported to CMake to simplify cross-platform builds, and get rid 
 
 ![The first time the chip simulator displayed something](docs/first_rendering.png)
 
-The current implementation is still very basic and only supports triangle rendering with Gouraud shading, the z-buffer and dithering. Textures, fog, alpha blending and SLI are not simulated yet.
+The current implementation is still very basic and only supports triangle rendering with Gouraud shading, the z-buffer, dithering and textures on the first TMU (perspective correct, with mipmaps, point sampled or bilinear filtered, in all uncompressed formats). Multitexturing, trilinear filtering, compressed textures, fog, alpha blending and SLI are not simulated yet.
 Geometry transformation and lighting are calculated on the CPU, just like in real Glide games of the time.
 
 ## How to Build?
