@@ -9,8 +9,10 @@ LABEL maintainer="Clemens Zangl" \
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Moscow
 
-# Install GCC, Git (to checkout google test), and other helpful tools. In one
-# layer, so the package lists removed at the end are not kept in the image.
+# Install GCC, Git (to checkout google test), and other helpful tools. Qt and
+# Xvfb are for the window of the chip simulator, which the CI opens on a
+# virtual display. In one layer, so the package lists removed at the end are
+# not kept in the image.
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
     xz-utils \
@@ -24,6 +26,9 @@ RUN apt-get update -y && \
     gcc-multilib \
     g++-multilib \
     mingw-w64 \
+    qt6-base-dev \
+    xvfb \
+    xauth \
     ca-certificates && \
     apt-get autoremove -y && \
     apt-get clean && \

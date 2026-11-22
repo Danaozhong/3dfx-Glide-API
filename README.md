@@ -37,6 +37,8 @@ The toolchain is ported to CMake to simplify cross-platform builds, and get rid 
 
 The current implementation is still very basic and only supports triangle rendering and a limited featureset of one TMU. Geometry transformation and lighting are calculated on the CPU, just like in real Glide games of the time.
 
+The simulator also shows the swapped images in a window: on Windows with the Win32 API, on Linux and macOS with Qt 5 or 6 if CMake finds it (`-DCSIM_WITH_QT=OFF` builds without). `CSIM_WINDOW=0` turns the window off, as ctest does for the tests.
+
 ## How to Build?
 The libraries are built under Linux, using the `mingw-w64` cross-platform compiler. The Glide3x library for Voodoo3/4/5 is also built with Visual Studio in the GitHub Actions CI environment, and its HAL_CSIM build is tested there with the chip simulator.
 

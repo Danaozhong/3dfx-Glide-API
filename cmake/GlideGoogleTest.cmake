@@ -53,11 +53,13 @@ function(glide_add_gtest target)
         endforeach()
     endif()
 
+    # The tests check the swapped images, the simulator window (CSIM_WINDOW,
+    # swlibs/csim) would only slow them down.
     # Listing the tests at test time, not after the build, also allows to
     # build the tests when cross compiling.
     if(CMAKE_VERSION VERSION_LESS 3.18)
-        gtest_discover_tests(${target} PROPERTIES TIMEOUT 60)
+        gtest_discover_tests(${target} PROPERTIES TIMEOUT 60 ENVIRONMENT CSIM_WINDOW=0)
     else()
-        gtest_discover_tests(${target} DISCOVERY_MODE PRE_TEST PROPERTIES TIMEOUT 60)
+        gtest_discover_tests(${target} DISCOVERY_MODE PRE_TEST PROPERTIES TIMEOUT 60 ENVIRONMENT CSIM_WINDOW=0)
     endif()
 endfunction()
