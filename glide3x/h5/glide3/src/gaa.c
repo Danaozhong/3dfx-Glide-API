@@ -463,18 +463,17 @@ GR_ENTRY(grAADrawTriangle,
     if ((gc->state.cull_mode != GR_CULL_DISABLE) && (((FxI32)(j.i ^ (gc->state.cull_mode << 31UL))) >= 0))
       return;
   }
-#if __POWERPC__
-        {
-                const void *verts[3];
-                verts[0] = a;
-                verts[1] = b;
-                verts[2] = c;
-                (*gc->archDispatchProcs.drawTrianglesProc)(GR_VTX_PTR_ARRAY, 3, verts);
-        }
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER) && !__POWERPC__
   grDrawTriangle(a, b, c);
 #else
-  (*gc->archDispatchProcs.drawTrianglesProc)(GR_VTX_PTR_ARRAY, 3, (void*)&a);
+  /* The parameters are not an array, e.g. on x64 they come in registers. */
+  {
+    const void *verts[3];
+    verts[0] = a;
+    verts[1] = b;
+    verts[2] = c;
+    (*gc->archDispatchProcs.drawTrianglesProc)(GR_VTX_PTR_ARRAY, 3, (void *)verts);
+  }
 #endif
   /* Disable depth buffer writes for edge triangles */
   fbzMode = fbzModeOld;

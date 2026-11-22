@@ -162,11 +162,16 @@ GR_ENTRY(grDrawPoint, void, ( const void *p ))
 GR_ENTRY(grDrawLine, void, ( const void *a, const void *b ))
 {
   GR_DCL_GC;
+  /* The parameters are not an array, e.g. on x64 they come in registers. */
+  const void *vlist[2];
+
+  vlist[0] = a;
+  vlist[1] = b;
 
   if (gc->state.grEnableArgs.primitive_smooth_mode & GR_AA_ORDERED_LINES_MASK)
-    _grAADrawLineStrip(GR_VTX_PTR_ARRAY, GR_LINES, 2, (void *)&a);
+    _grAADrawLineStrip(GR_VTX_PTR_ARRAY, GR_LINES, 2, (void *)vlist);
   else
-    _grDrawLineStrip(GR_VTX_PTR_ARRAY, GR_LINES, 2, (void *)&a);
+    _grDrawLineStrip(GR_VTX_PTR_ARRAY, GR_LINES, 2, (void *)vlist);
 } /* grDrawLine */
 
 /*---------------------------------------------------------------------------
