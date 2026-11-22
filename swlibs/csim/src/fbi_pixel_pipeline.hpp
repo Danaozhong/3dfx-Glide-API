@@ -15,6 +15,14 @@
 
 namespace csim {
 
+/// @brief A pixel written through the 3D LFB, decoded from its lfbMode format.
+struct LfbPixel {
+  bool hasColor = false;
+  bool hasDepth = false;
+  FxU32 r = 0, g = 0, b = 0, a = 0xFF;  ///< 8 bits each.
+  FxU32 z = 0;                          ///< 24 bits, 16-bit depths in the high bits.
+};
+
 /// @brief The pixel pipeline of the FBI, after the rasterizer and the TMUs.
 class FbiPixelPipeline {
 public:
@@ -42,6 +50,22 @@ public:
    * @param[in] state The decoded mode registers.
    */
   void fill(int x, int y, const RenderState &state);
+
+  /**
+   * @brief Writes a pixel of the 3D LFB into the color buffer and the aux
+   * buffer, converted to their formats.
+   *
+   * Through the pixel pipeline, the pixel is dithered and written through
+   * the write masks; color combine, the tests and the clipping are not
+   * simulated for it.
+   *
+   * @param[in] x Pixel column.
+   * @param[in] y Pixel row, after the y origin is applied.
+   * @param[in] pixel The pixel.
+   * @param[in] pixelPipeline lfbMode enables the pixel pipeline.
+   * @param[in] state The decoded mode registers.
+   */
+  void lfbWrite(int x, int y, const LfbPixel &pixel, bool pixelPipeline, const RenderState &state);
 
 private:
   /**

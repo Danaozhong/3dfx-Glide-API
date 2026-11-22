@@ -2245,7 +2245,8 @@ hwcAllocBuffers(hwcBoardInfo *bInfo, FxU32 nColBuffers, FxU32 nAuxBuffers)
 
   bInfo->buffInfo.bufStride = bufStride;
   bInfo->buffInfo.bufSize = bufSize;
-  bInfo->buffInfo.bufLfbStride = HWC_LFB_STRIDE;
+  /* Only the tiled aperture has the fixed stride, linear buffers have their own. */
+  bInfo->buffInfo.bufLfbStride = bInfo->vidInfo.tiled ? HWC_LFB_STRIDE : bufStride;
 
   if (bInfo->vidInfo.tiled) {
     bInfo->buffInfo.bufStrideInTiles = (bufStride >> 7);

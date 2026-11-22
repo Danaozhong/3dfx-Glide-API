@@ -26,6 +26,13 @@ public:
    * @param[in] byteMask Bit i disables byte i.
    */
   virtual void storeFrameBuffer(FxU32 fbOffset, FxU32 data, FxU32 byteMask) = 0;
+  /**
+   * @brief A write into the 3D LFB.
+   * @param[in] offset Offset of the word in the 3D LFB.
+   * @param[in] data The word.
+   * @param[in] byteMask Bit i disables byte i.
+   */
+  virtual void store3dLfb(FxU32 offset, FxU32 data, FxU32 byteMask) = 0;
 
 protected:
   ~RegisterBus() = default;

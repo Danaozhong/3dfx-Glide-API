@@ -784,4 +784,64 @@ TEST_F(GlideCsim, LocksTheFrameBufferInsideTheBoard)
   EXPECT_TRUE(grLfbUnlock(GR_LFB_WRITE_ONLY, GR_BUFFER_BACKBUFFER));
 }
 
+// The stride of the lock is the one of the color buffer, so the pixel of
+// row y appears in row y of the swapped image.
+TEST_F(GlideCsim, WritesPixelsThroughTheLockedFrameBuffer)
+{
+  ASSERT_NO_FATAL_FAILURE(openWindow());
+  grBufferClear(0xFF000000, 0, 0xFFFF);
+
+  GrLfbInfo_t write;
+  write.size = sizeof(write);
+  ASSERT_TRUE(grLfbLock(GR_LFB_WRITE_ONLY, GR_BUFFER_BACKBUFFER, GR_LFBWRITEMODE_565,
+                        GR_ORIGIN_UPPER_LEFT, FXFALSE, &write));
+  ASSERT_EQ(write.writeMode, GR_LFBWRITEMODE_565);
+  for (FxU32 y = 100; y < 110; y++) {
+    auto *row = reinterpret_cast<FxU16 *>(static_cast<FxU8 *>(write.lfbPtr) + y * write.strideInBytes);
+    for (FxU32 x = 200; x < 220; x++) row[x] = 0xF800;
+  }
+  EXPECT_TRUE(grLfbUnlock(GR_LFB_WRITE_ONLY, GR_BUFFER_BACKBUFFER));
+  grBufferSwap(1);
+  grFinish();
+
+  const SwappedImage image(0);
+  ASSERT_TRUE(image.valid());
+  EXPECT_EQ(image.count(0xFFFF0000), 10u * 20u);
+  EXPECT_EQ(image.at(200, 100), 0xFFFF0000u);
+  EXPECT_EQ(image.at(219, 109), 0xFFFF0000u);
+}
+
+// grLfbWriteRegion writes through the 3D LFB, which converts the source
+// format into the one of the color buffer; grLfbReadRegion reads it back.
+TEST_F(GlideCsim, WritesRegionsThroughThe3dLfb)
+{
+  ASSERT_NO_FATAL_FAILURE(openWindow());
+  grDitherMode(GR_DITHER_DISABLE);
+  grBufferClear(0xFF000000, 0, 0xFFFF);
+
+  const CsimStats before = getStats();
+  std::vector<FxU16> green(16 * 8, 0x07E0);
+  EXPECT_TRUE(grLfbWriteRegion(GR_BUFFER_BACKBUFFER, 100, 50, GR_LFB_SRC_FMT_565, 16, 8, FXFALSE,
+                               16 * sizeof(FxU16), green.data()));
+  std::vector<FxU32> blue(8 * 4, 0x000000FF);
+  EXPECT_TRUE(grLfbWriteRegion(GR_BUFFER_BACKBUFFER, 300, 200, GR_LFB_SRC_FMT_888, 8, 4, FXFALSE,
+                               8 * sizeof(FxU32), blue.data()));
+  std::vector<FxU16> readBack(16 * 8, 0);
+  EXPECT_TRUE(grLfbReadRegion(GR_BUFFER_BACKBUFFER, 100, 50, 16, 8, 16 * sizeof(FxU16),
+                              readBack.data()));
+  grBufferSwap(1);
+  grFinish();
+  const CsimStats after = getStats();
+
+  EXPECT_EQ(after.unsimulated, before.unsimulated);
+  EXPECT_EQ(readBack, green);
+  const SwappedImage image(0);
+  ASSERT_TRUE(image.valid());
+  EXPECT_EQ(image.count(0xFF00FF00), 16u * 8u);
+  EXPECT_EQ(image.at(100, 50), 0xFF00FF00u);
+  EXPECT_EQ(image.at(115, 57), 0xFF00FF00u);
+  EXPECT_EQ(image.count(0xFF0000FF), 8u * 4u);
+  EXPECT_EQ(image.at(307, 203), 0xFF0000FFu);
+}
+
 }  // namespace

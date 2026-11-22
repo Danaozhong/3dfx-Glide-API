@@ -13,6 +13,7 @@ add_library(csim STATIC
     src/csim.cpp
     src/fbi_pixel_pipeline.cpp
     src/frame_buffer.cpp
+    src/lfb.cpp
     src/rasterization.cpp
     src/registers.cpp
     src/render_state.cpp

@@ -17,6 +17,7 @@
  * | fbi_pixel_pipeline.cpp | FbiPixelPipeline: color select, tests, dither, write |
  * | color_combine.cpp      | color and alpha combine units                        |
  * | frame_buffer.cpp       | FrameBuffer: pixel addresses, swapped images         |
+ * | lfb.cpp                | Chip: 3D LFB writes in the formats of lfbMode        |
  *
  * The units get the mode registers decoded once per command, as a
  * RenderState (render_state.hpp), and pass pixels on as Fragments.
@@ -25,7 +26,8 @@
  * compressed, tiled and big textures, trilinear filtering, LOD dither, fog,
  * alpha blending, stencil, W-buffering, stipple, anti-aliasing and SLI.
  * Pixels that would need any of them are counted in CsimStats.unsimulated
- * and drawn without it.
+ * and drawn without it. 3D LFB writes through the pixel pipeline are
+ * dithered and masked, but not combined or tested.
  */
 #ifndef CSIM_CHIP_HPP
 #define CSIM_CHIP_HPP
@@ -90,6 +92,19 @@ public:
   void store3d(FxU32 offset, FxU32 data);
 
   /**
+   * @brief A write into the 3D LFB, which converts pixels in the format of
+   * lfbMode into the color and aux buffers.
+   *
+   * The 3D LFB is 2048 pixels wide; a 32-bit write is two pixels in the
+   * 16-bit formats.
+   *
+   * @param[in] offset Offset from SST_LFB_OFFSET.
+   * @param[in] data The value written.
+   * @param[in] size Bytes written, 2 or 4.
+   */
+  void lfbWrite(FxU32 offset, FxU32 data, FxU32 size);
+
+  /**
    * @name The image shown by the last swapbufferCMD, 0xAARRGGBB
    * @{
    */
@@ -106,6 +121,7 @@ private:
    */
   void storeRegister(FxU32 offset, FxU32 data) override;
   void storeFrameBuffer(FxU32 fbOffset, FxU32 data, FxU32 byteMask) override;
+  void store3dLfb(FxU32 offset, FxU32 data, FxU32 byteMask) override;
   /// @}
 
   /**
