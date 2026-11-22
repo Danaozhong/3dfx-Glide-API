@@ -14,6 +14,7 @@ The [Utah teapot](https://en.wikipedia.org/wiki/Utah_teapot) rendered with the G
 ![win-glide3-voodoo345-msvc-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo45_msvc.yml/badge.svg)
 ![win-glide3-voodoo345-gcc-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo45_gcc.yml/badge.svg)
 ![glide3-voodoo45-csim-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo45_csim.yml/badge.svg)
+![glide3-voodoo45-3dfx-examples](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo45_3dfx_examples.yml/badge.svg)
 ![win-glide3-voodoo2-gcc-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo2.yml/badge.svg)
 ![win-glide2-voodoo3-gcc-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide2_voodoo3.yml/badge.svg)
 ![win-glide2-voodoo2-gcc-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide2_voodoo2.yml/badge.svg)
@@ -37,7 +38,18 @@ The toolchain is ported to CMake to simplify cross-platform builds, and get rid 
 
 The current implementation is still very basic and only supports triangle rendering and a limited featureset of one TMU. Geometry transformation and lighting are calculated on the CPU, just like in real Glide games of the time.
 
-The simulator also shows the swapped images in a window: on Windows with the Win32 API, on Linux and macOS with Qt 5 or 6 if CMake finds it (`-DCSIM_WITH_QT=OFF` builds without). `CSIM_WINDOW=0` turns the window off, as ctest does for the tests.
+The chip simulator displays the rendering output in a separate window. On Windows, it uses the Win32 API, on Linux and macOS it uses Qt. The window can be turned off for unit or CI tests using a CMake switch.
+
+### The 3dfx SDK Examples
+`examples/3dfx` contains the original test programs of the 3dfx Glide3 SDK (`test00` to `test49`, `sbench` and `display`), each showing one Glide feature. They are built with `-DGLIDE_BUILD_3DFX_EXAMPLES=ON`. With `-DBUILD_HAL_CSIM=ON`, they run on the chip simulator:
+```sh
+mkdir bin_examples
+cd bin_examples
+cmake -DBUILD_HAL_CSIM=ON -DGLIDE_BUILD_3DFX_EXAMPLES=ON ..
+cmake --build .
+ctest -L 3dfx
+```
+Because they were originally designed for standalone running, `ctest` runs every program for 3 frames and writes the rendered images to `examples/3dfx/images` in the build directory. Started by hand, the program runs normally as designed by 3dfx.
 
 ## How to Build?
 The libraries are built under Linux, using the `mingw-w64` cross-platform compiler. The Glide3x library for Voodoo3/4/5 is also built with Visual Studio in the GitHub Actions CI environment, and its HAL_CSIM build is tested there with the chip simulator.

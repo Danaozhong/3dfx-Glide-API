@@ -39,6 +39,7 @@ int main( int argc, char **argv)
   char match; 
   char **remArgs;
   int  rv;
+  int  interactive;
   char key;
   float red=1.3f;
   float green=1.3f;
@@ -82,6 +83,7 @@ int main( int argc, char **argv)
       break;
     }
   }
+  interactive = ( frames == -1 );
   
   tlSetScreen( scrWidth, scrHeight );
   
@@ -135,7 +137,9 @@ int main( int argc, char **argv)
       scrgrab = FXFALSE;
     }
 
-    key = tlGetCH();
+    /* Without a user, keep raising the red gamma, so that every frame still
+     * sets a new gamma table. */
+    key = interactive ? tlGetCH() : 'w';
         
         switch(key)
                 {

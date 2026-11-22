@@ -16,7 +16,11 @@ OPTION(GLIDE_BUILD_TESTS
        "Build the tests in tests/, run them with ctest. Downloads GoogleTest."
        OFF)
 
-if(GLIDE_BUILD_TESTS)
+OPTION(GLIDE_BUILD_3DFX_EXAMPLES
+       "Build the test programs of the 3dfx Glide3 SDK in examples/3dfx. With BUILD_HAL_CSIM, ctest runs them on the chip simulator (label 3dfx)."
+       OFF)
+
+if(GLIDE_BUILD_TESTS OR GLIDE_BUILD_3DFX_EXAMPLES)
     enable_testing()
 endif()
 
@@ -71,7 +75,7 @@ add_subdirectory(common)
 add_subdirectory(swlibs)
 add_subdirectory(glide3x)
 
-if(BUILD_HAL_CSIM)
+if(BUILD_HAL_CSIM OR GLIDE_BUILD_3DFX_EXAMPLES)
     add_subdirectory(examples)
 endif()
 

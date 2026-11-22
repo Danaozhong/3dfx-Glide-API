@@ -55,6 +55,7 @@ main(int argc, char **argv)
   float                scrWidth   = 640.0f;
   float                scrHeight  = 480.0f;
   int frames                      = -1;
+  int interactive;
   FxBool               scrgrab = FXFALSE;
   char                 filename[256];
   FxU8                 subframe = 0;
@@ -101,6 +102,7 @@ main(int argc, char **argv)
       break;
     }
   }
+  interactive = (frames == -1);
 
   tlSetScreen(scrWidth, scrHeight);
 
@@ -191,7 +193,7 @@ main(int argc, char **argv)
 
   while(frames-- && tlOkToRender()) {
     GrVertex vtxA, vtxB, vtxC, vtxD;
-    FxU32 cont = 1;
+    FxU32 cont = interactive;
 
     if (hwconfig == TL_VOODOORUSH) {
       tlGetDimsByConst(resolution,
@@ -292,7 +294,7 @@ main(int argc, char **argv)
       subframe++;
     }
         
-    do { /* while(tlKbHit()) { */
+    while (cont) {
       const char curKey = tlGetCH();
 
       switch(curKey) {
@@ -320,7 +322,7 @@ main(int argc, char **argv)
         frames = 0;
         break;
       }
-    } while ( cont );
+    }
 
     grBufferSwap(1);
     grFinish();

@@ -1,0 +1,91 @@
+name: Run the 3dfx Glide3 SDK Examples on the Chip Simulator
+
+# Builds the test programs of the 3dfx Glide3 SDK in examples/3dfx against
+# Glide3x with HAL_CSIM and runs each of them for 3 frames on the chip
+# simulator (ctest label 3dfx). A program fails if it crashes, hangs or
+# reports an error; the rendered images are not compared, they are uploaded
+# for a look.
+# The other build variants are covered by build_glide3_voodoo45_csim.yml, so
+# this only runs the main targets: Linux GCC x64 and Windows MSVC x64.
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  examples_linux:
+    runs-on: ubuntu-latest
+    container:
+      image: 'ghcr.io/danaozhong/3dfx_glide_dev_env_linux_x64:latest'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Generate Fx Build Number Tool
+      working-directory: "glide3x/h5/glide3/src/"
+      run: |
+        mkdir -p fxbldno_tool/bin
+        cd fxbldno_tool/bin
+        cmake ..
+        cmake --build .
+
+    - name: Generate Build Number Header Files
+      working-directory: "glide3x/h5/glide3/src/"
+      run: |
+        ./fxbldno_tool/bin/fxbldno  > fxbldno.h
+
+    - name: Build the 3dfx Examples (HAL_CSIM, Linux, x64)
+      run: |
+        mkdir bin_examples
+        cd bin_examples
+        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_HAL_CSIM=ON -DGLIDE_BUILD_3DFX_EXAMPLES=ON ..
+        cmake --build . -j4
+
+    - name: Run the 3dfx Examples (HAL_CSIM, Linux, x64)
+      working-directory: bin_examples
+      run: |
+        ctest -L 3dfx --output-on-failure -j4 < /dev/null
+
+    - name: Upload the Rendered Images
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: 3dfx_examples_images_linux_x64
+        path: bin_examples/examples/3dfx/images/*.ppm
+        if-no-files-found: ignore
+
+  examples_msvc:
+    runs-on: windows-latest
+
+    steps:
+    - uses: ilammy/setup-nasm@v1
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Generate Fx Build Number Tool
+      working-directory: "glide3x/h5/glide3/src/"
+      run: |
+        mkdir fxbldno_tool/bin
+        cd fxbldno_tool/bin
+        cmake -DCMAKE_GENERATOR_PLATFORM=Win32 ..
+        cmake --build .
+
+    - name: Generate Build Number Header Files
+      working-directory: "glide3x/h5/glide3/src/"
+      run: |
+        ./fxbldno_tool/bin/Debug/fxbldno.exe  > fxbldno.h
+
+    - name: Build the 3dfx Examples (HAL_CSIM, Windows, MSVC, x64)
+      run: |
+        mkdir bin_examples
+        cd bin_examples
+        cmake -A x64 -DBUILD_HAL_CSIM=ON -DGLIDE_BUILD_3DFX_EXAMPLES=ON ..
+        cmake --build . --config Release
+
+    - name: Run the 3dfx Examples (HAL_CSIM, Windows, MSVC, x64)
+      working-directory: bin_examples
+      run: |
+        ctest -C Release -L 3dfx --output-on-failure

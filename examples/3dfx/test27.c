@@ -46,6 +46,7 @@ int main( int argc, char **argv) {
     float                scrHeight  = 480.0f;
     int frames                      = -1;
     int doNothing = 0;
+    int interactive;
 
     int cycles;
     FxU32 wrange[2];
@@ -77,6 +78,7 @@ int main( int argc, char **argv) {
             break;
         }
     }
+    interactive = ( frames == -1 );
 
     tlSetScreen( scrWidth, scrHeight );
 
@@ -163,8 +165,10 @@ int main( int argc, char **argv) {
         grBufferSwap( 1 );
 
 doNothing:
-        inchar = tlGetCH();
-        if ( inchar != ' ' ) frames = 0;
+        if ( interactive ) {
+            inchar = tlGetCH();
+            if ( inchar != ' ' ) frames = 0;
+        }
         
         grSstWinClose(context);
         cycles++;

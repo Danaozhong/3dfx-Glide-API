@@ -265,6 +265,12 @@ int main( int argc, char **argv)
       image       = calloc( imageWidth * imageHeight, sizeof( FxU32 ) );
       imageConvert( image, dst.data, sourceFormat, &bpp );
     }
+    if ( !image ) {
+        printf( "No image could be loaded\n" );
+        printf( "%s %s\n", name, usage );
+        grGlideShutdown();
+        return -1;
+    }
     if ( ( imageWidth > (FxU32)scrWidth ) ||
          ( imageHeight > (FxU32)scrHeight ) )
         return -1;
