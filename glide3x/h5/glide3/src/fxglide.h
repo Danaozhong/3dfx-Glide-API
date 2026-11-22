@@ -2183,6 +2183,9 @@ extern GrGCFuncs _curGCFuncs;
 # define P6FENCE asm volatile ("mf.a" ::: "memory");
 #elif defined(__GNUC__) && defined(__alpha__)
 # define P6FENCE asm volatile("mb" ::: "memory");
+#elif defined(__GNUC__)
+/* Other architectures, e.g. ARM: a full memory barrier. */
+# define P6FENCE __sync_synchronize()
 #elif defined(__WATCOMC__)
 void 
 p6Fence(void);

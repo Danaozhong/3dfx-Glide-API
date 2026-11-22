@@ -11,7 +11,8 @@
 #
 # The headers contain struct offsets, which must match the ABI of the DLL.
 # fxgasm.c is therefore built with the DLL's compiler and configuration:
-#  - MSVC: built as a program and run.
+#  - MSVC, and native builds without objcopy (e.g. macOS): built as a
+#    program and run.
 #  - GCC/Clang: only compiled, fxgasm_emit.h writes the output into object
 #    sections which are extracted with objcopy. This also works when the
 #    target can not be executed, e.g. when cross compiling with MinGW.
@@ -36,7 +37,7 @@ function(glide_add_fxgasm_headers name)
     set(fxinline_h ${ARG_OUTPUT_DIR}/fxinline.h)
     file(MAKE_DIRECTORY ${ARG_OUTPUT_DIR})
 
-    if(MSVC)
+    if(MSVC OR (NOT CMAKE_OBJCOPY AND NOT CMAKE_CROSSCOMPILING))
         if(CMAKE_CROSSCOMPILING)
             message(FATAL_ERROR "fxgasm can not be run when cross compiling with MSVC")
         endif()

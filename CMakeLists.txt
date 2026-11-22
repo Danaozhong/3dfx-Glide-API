@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.13)
 
-PROJECT(Glide3x VERSION 1.0 DESCRIPTION "Glide3x API for Voodoo3/4/5" LANGUAGES C CXX ASM_NASM)
+PROJECT(Glide3x VERSION 1.0 DESCRIPTION "Glide3x API for Voodoo3/4/5" LANGUAGES C CXX)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(GlideArch)
@@ -66,6 +66,12 @@ endif()
 
 set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> \
     <FLAGS> -DGLIDE_PACKED_RGB ${CMAKE_ASM_NASM_DEFINITIONS} -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} -o <OBJECT> <SOURCE>")
+
+# Only the 32-bit Windows build has assembly sources (win9x.asm), elsewhere
+# NASM is not needed, e.g. on ARM.
+if(WIN32 AND BUILD_32BIT)
+    enable_language(ASM_NASM)
+endif()
 
     
 set (FXMISC_DIR ${CMAKE_SOURCE_DIR}/swlibs/fxmisc)

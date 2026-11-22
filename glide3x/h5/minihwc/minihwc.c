@@ -1084,6 +1084,9 @@ static void hwc_errncpy(char *dst,const char *src)
 # define P6FENCE asm volatile ("mf.a" ::: "memory");
 #elif defined(__GNUC__) && defined(__alpha__)
 # define P6FENCE asm volatile("mb" ::: "memory");
+#elif defined(__GNUC__)
+/* Other architectures, e.g. ARM: a full memory barrier. */
+# define P6FENCE __sync_synchronize()
 #else
 #error "P6 Fencing in-line assembler code needs to be added for this compiler"
 #endif /* Compiler specific fence commands */
