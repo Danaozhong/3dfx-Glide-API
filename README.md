@@ -6,6 +6,7 @@ The source is licensed under 3DFX GLIDE Source Code General Public License.
 
 
 ![Utah teapot rendered on the chip simulator](docs/teapot_sample_render.png)
+
 The [Utah teapot](https://en.wikipedia.org/wiki/Utah_teapot) rendered with the Glide3 API from this repository on a 3dfx Napalm (VSA-100) chip simulator.
 
 
@@ -34,11 +35,10 @@ The toolchain is ported to CMake to simplify cross-platform builds, and get rid 
 
 ![The first time the chip simulator displayed something](docs/first_rendering.png)
 
-The current implementation is still very basic and only supports triangle rendering with Gouraud shading, the z-buffer, dithering and textures on the first TMU (perspective correct, with mipmaps, point sampled or bilinear filtered, in all uncompressed formats). Multitexturing, trilinear filtering, compressed textures, fog, alpha blending and SLI are not simulated yet.
-Geometry transformation and lighting are calculated on the CPU, just like in real Glide games of the time.
+The current implementation is still very basic and only supports triangle rendering and a limited featureset of one TMU. Geometry transformation and lighting are calculated on the CPU, just like in real Glide games of the time.
 
 ## How to Build?
-The libraries are built under Linux, using the mingw-w64 cross-platform compiler. The Glide3x library for Voodoo3/4/5 is also built with Visual Studio in the GitHub Actions CI environment, and its HAL_CSIM build is tested there with the chip simulator.
+The libraries are built under Linux, using the `mingw-w64` cross-platform compiler. The Glide3x library for Voodoo3/4/5 is also built with Visual Studio in the GitHub Actions CI environment, and its HAL_CSIM build is tested there with the chip simulator.
 
 The Glide API comes in two versions, Glide2x and Glide3x. Both versions have different libraries for the video card series they are supporting:
 * sst1 is for Voodoo1 cards
