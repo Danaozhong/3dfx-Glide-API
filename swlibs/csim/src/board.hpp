@@ -21,7 +21,6 @@ constexpr std::size_t kBoardSize = SST_MAX_LEGAL_OFFSET;
 
 constexpr FxU32 kFbiMemMB = 32;  ///< Frame buffer memory.
 constexpr FxU32 kTmuMemMB = 16;  ///< Texture memory per TMU.
-constexpr FxU32 kNumTmus = 2;    ///< TMUs reported to Glide.
 
 /// @brief What a write into the address space of a board was.
 enum class Write {

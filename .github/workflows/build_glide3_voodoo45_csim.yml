@@ -3,8 +3,9 @@ name: Build Glide3x for Voodoo4/5 Library (HAL_CSIM, chip simulator)
 # Builds Glide3x with HAL_CSIM, where the hardware is accessed through the
 # chip simulator interface instead of minihwc. The chip simulator
 # (swlibs/csim) emulates a single Napalm chip: it executes the command FIFO
-# and renders Gouraud shaded, z-buffered and dithered triangles into the
-# frame buffer. Textures, fog, alpha blending and SLI are not simulated yet.
+# and renders Gouraud shaded, z-buffered, dithered and (on the first TMU)
+# textured triangles into the frame buffer. Fog, alpha blending and SLI are
+# not simulated yet.
 # The integration tests in tests/csim render through Glide and check the
 # swapped images: on Linux (GCC, x64 and x32) and on Windows (MSVC, x64 and
 # x32).

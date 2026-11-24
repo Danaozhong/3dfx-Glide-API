@@ -38,8 +38,8 @@ int outShift(int value, FxU32 shift, FxU32 twoX, FxU32 fourX)
 
 }  // namespace
 
-void combineColor(FxU8 local[4], const FxU8 other[4], const FxU8 mselect7[3],
-                  const FxU8 texture[4], const CombineConfig &config)
+void combineColor(FxU8 local[4], const FxU8 other[4], const CombineInputs &inputs,
+                  const CombineConfig &config)
 {
   const FxU32 mode = config.mode;
   const FxU32 combineMode = config.combineMode;
@@ -69,9 +69,9 @@ void combineColor(FxU8 local[4], const FxU8 other[4], const FxU8 mselect7[3],
   case SST_TC_MCLOCAL: factors = local; break;
   case SST_TC_MAOTHER: beta = other[3]; break;
   case SST_TC_MALOCAL: beta = local[3]; break;
-  case SST_TC_MLOD: beta = texture[3]; break;        // SST_CC_MATREX: texture alpha
-  case SST_TC_MLODFRAC: factors = texture; break;    // SST_CC_MRGBTMU: texture color
-  case SST_TC_MCMSELECT7: factors = mselect7; break;
+  case SST_TC_MLOD: factors = inputs.mlod; break;
+  case SST_TC_MLODFRAC: factors = inputs.mlodFrac; break;
+  case SST_TC_MCMSELECT7: factors = inputs.mselect7; break;
   }
   for (int i = 0; i < 3; i++) {
     const int factor = (factors != nullptr) ? factors[i] : beta;
@@ -86,8 +86,8 @@ void combineColor(FxU8 local[4], const FxU8 other[4], const FxU8 mselect7[3],
   case 2:  // local color
     for (int i = 0; i < 3; i++) add[i] = local[i];
     break;
-  case 3:  // texture color
-    for (int i = 0; i < 3; i++) add[i] = texture[i];
+  case 3:
+    for (int i = 0; i < 3; i++) add[i] = inputs.addBoth[i];
     break;
   }
 
@@ -102,8 +102,8 @@ void combineColor(FxU8 local[4], const FxU8 other[4], const FxU8 mselect7[3],
   }
 }
 
-void combineAlpha(FxU8 local[4], const FxU8 other[4], const FxU8 iterated[4],
-                  const FxU8 texture[4], const CombineConfig &config)
+void combineAlpha(FxU8 local[4], const FxU8 other[4], const CombineInputs &inputs,
+                  const CombineConfig &config)
 {
   const FxU32 mode = config.mode;
   const FxU32 combineMode = config.combineMode;
@@ -125,10 +125,10 @@ void combineAlpha(FxU8 local[4], const FxU8 other[4], const FxU8 iterated[4],
   case SST_TCA_MCLOCAL: beta = local[3]; break;
   case SST_TCA_MAOTHER: beta = other[3]; break;
   case SST_TCA_MALOCAL: beta = local[3]; break;
-  case SST_TCA_MLOD: beta = texture[3]; break;     // SST_CCA_MATREX: texture alpha
-  case SST_TCA_MLODFRAC: beta = iterated[3]; break;  // SST_CCA_MAITER: iterated alpha
-  case SST_TCA_MAITER: beta = config.color1Alpha; break;
-  case SST_TCA_MCR: beta = 0; break;
+  case SST_TCA_MLOD: beta = inputs.alphaMlod; break;
+  case SST_TCA_MLODFRAC: beta = inputs.alphaMlodFrac; break;
+  case SST_TCA_MAITER: beta = inputs.alphaMaiter; break;
+  case SST_TCA_MCR: beta = inputs.alphaMcr; break;
   }
   if (beta >= 0) a *= (beta ^ reverse) + 1;
   a >>= 8;
@@ -139,8 +139,8 @@ void combineAlpha(FxU8 local[4], const FxU8 other[4], const FxU8 iterated[4],
   case 2:
     add = local[3];
     break;
-  case 3:  // texture alpha
-    add = texture[3];
+  case 3:
+    add = inputs.alphaAddBoth;
     break;
   }
   if (combineMode & SST_CM_TCA_INVERT_ADD_LOCAL) add = ~add & 0xFF;

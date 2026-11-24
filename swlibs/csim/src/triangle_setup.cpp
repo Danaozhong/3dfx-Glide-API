@@ -114,6 +114,12 @@ void SetupUnit::copyVertex()
   p.g = floatOf(s.sGreen);
   p.b = floatOf(s.sBlue);
   p.a = floatOf(s.sAlpha);
+  p.w0 = floatOf(s.sOow0);
+  p.s0 = floatOf(s.sSow0);
+  p.t0 = floatOf(s.sTow0);
+  p.w1 = floatOf(s.sOow1);
+  p.s1 = floatOf(s.sSow1);
+  p.t1 = floatOf(s.sTow1);
 }
 
 bool SetupUnit::setup(ZIterator &z)
@@ -166,13 +172,17 @@ bool SetupUnit::setup(ZIterator &z)
     dpdx = (dpAB * dyBC - dpBC * dyAB) * ooarea;
     dpdy = (dpBC * dxAB - dpAB * dxBC) * ooarea;
   };
-  auto setupRGBA = [&](float SetupVertex::*p, volatile FxI32 &start, volatile FxI32 &dpdxReg,
-                       volatile FxI32 &dpdyReg) {
+  auto setupParameter = [&](float SetupVertex::*p, int fracBits, int size, volatile FxI32 &start,
+                            volatile FxI32 &dpdxReg, volatile FxI32 &dpdyReg) {
     float dpdx, dpdy;
     gradient(p, dpdx, dpdy);
-    start = static_cast<FxI32>(toFixed(v[a].*p, SST_RGBA_FRACBITS, SST_RGBA_SIZE));
-    dpdxReg = static_cast<FxI32>(toFixed(dpdx, SST_RGBA_FRACBITS, SST_RGBA_SIZE));
-    dpdyReg = static_cast<FxI32>(toFixed(dpdy, SST_RGBA_FRACBITS, SST_RGBA_SIZE));
+    start = static_cast<FxI32>(toFixed(v[a].*p, fracBits, size));
+    dpdxReg = static_cast<FxI32>(toFixed(dpdx, fracBits, size));
+    dpdyReg = static_cast<FxI32>(toFixed(dpdy, fracBits, size));
+  };
+  auto setupRGBA = [&](float SetupVertex::*p, volatile FxI32 &start, volatile FxI32 &dpdxReg,
+                       volatile FxI32 &dpdyReg) {
+    setupParameter(p, SST_RGBA_FRACBITS, SST_RGBA_SIZE, start, dpdxReg, dpdyReg);
   };
 
   s.vA.x = toFixed(v[a].x, SST_XY_FRACBITS, SST_XY_SIZE);
@@ -205,8 +215,28 @@ bool SetupUnit::setup(ZIterator &z)
     z.dzdx = toZ64(dzdx);
     z.dzdy = toZ64(dzdy);
   }
-  if (smode & (SST_SETUP_Wfbi | SST_SETUP_W0 | SST_SETUP_ST0 | SST_SETUP_W1 | SST_SETUP_ST1)) {
-    context_.stats->unsimulated++;  // W and texture coordinates
+  if (smode & SST_SETUP_Wfbi) {
+    setupParameter(&SetupVertex::w, SST_W_FRACBITS, SST_W_SIZE, s.w, s.dwdx, s.dwdy);
+  }
+
+  // A TMU without its own W, or S and T, takes those of the unit before it.
+  float SetupVertex::*w = (smode & SST_SETUP_W0) ? &SetupVertex::w0 : &SetupVertex::w;
+  float SetupVertex::*sow = &SetupVertex::s0;
+  float SetupVertex::*tow = &SetupVertex::t0;
+  for (int t = 0; t < kNumTmus; t++) {
+    if ((t == 1) && (smode & SST_SETUP_W1)) w = &SetupVertex::w1;
+    if ((t == 1) && (smode & SST_SETUP_ST1)) {
+      sow = &SetupVertex::s1;
+      tow = &SetupVertex::t1;
+    }
+    SstRegs &tmu = context_.tmu(t);
+    if (smode & (SST_SETUP_Wfbi | SST_SETUP_W0 | SST_SETUP_W1)) {
+      setupParameter(w, SST_W_FRACBITS, SST_W_SIZE, tmu.w, tmu.dwdx, tmu.dwdy);
+    }
+    if (smode & (SST_SETUP_ST0 | SST_SETUP_ST1)) {
+      setupParameter(sow, SST_ST_FRACBITS, SST_ST_SIZE, tmu.s, tmu.dsdx, tmu.dsdy);
+      setupParameter(tow, SST_ST_FRACBITS, SST_ST_SIZE, tmu.t, tmu.dtdx, tmu.dtdy);
+    }
   }
   return true;
 }

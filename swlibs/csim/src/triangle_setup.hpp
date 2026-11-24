@@ -15,6 +15,8 @@ namespace csim {
 struct SetupVertex {
   float x, y, z, w;
   float r, g, b, a;
+  float w0, s0, t0;  ///< 1/W, S/W and T/W of TMU0.
+  float w1, s1, t1;  ///< 1/W, S/W and T/W of TMU1.
 };
 
 /// @brief The setup unit.
@@ -33,7 +35,8 @@ public:
    * @brief sDrawTriCMD: adds the vertex in the registers.
    * @param[out] z The Z iterator of the triangle.
    * @return True if there is a triangle to draw, after its parameters are in
-   * the vA, vB, vC, color and triangleCMD registers, and its Z in @p z.
+   * the vA, vB, vC, color, W, texture coordinate and triangleCMD registers,
+   * and its Z in @p z.
    */
   bool drawTriangle(ZIterator &z);
 

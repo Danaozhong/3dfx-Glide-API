@@ -33,7 +33,7 @@ typedef struct CsimStats_s {
   unsigned int fastFills;       /**< fastfillCMD executed (buffer clears).     */
   unsigned int swaps;           /**< swapbufferCMD executed.                   */
   unsigned int unsimulated;     /**< Commands and pixels needing features the
-                                     chip does not simulate, e.g. textures.   */
+                                     chip does not simulate, e.g. fog.        */
 } CsimStats;
 
 /**

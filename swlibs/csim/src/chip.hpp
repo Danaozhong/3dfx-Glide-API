@@ -1,7 +1,8 @@
 /**
  * @file
  * @brief The 3D part of a simulated Napalm chip, which renders Gouraud
- * shaded triangles into the frame buffer of a board (see board.hpp).
+ * shaded and textured triangles into the frame buffer of a board (see
+ * board.hpp).
  *
  * The chip is a pipeline of units, in the layout of the 3dfx chip simulator
  * and with its fixed point formats (fixed_point.hpp):
@@ -12,6 +13,7 @@
  * | registers.cpp          | Chip: register writes and commands                   |
  * | triangle_setup.cpp     | SetupUnit: float vertices to gradients               |
  * | rasterization.cpp      | Rasterizer: edge walking and iteration               |
+ * | texture_unit.cpp       | TextureUnit: texel fetch, filtering, texture combine |
  * | fbi_pixel_pipeline.cpp | FbiPixelPipeline: color select, tests, dither, write |
  * | color_combine.cpp      | color and alpha combine units                        |
  * | frame_buffer.cpp       | FrameBuffer: pixel addresses, swapped images         |
@@ -19,9 +21,11 @@
  * The units get the mode registers decoded once per command, as a
  * RenderState (render_state.hpp), and pass pixels on as Fragments.
  *
- * Not simulated are the TMUs (textures), fog, alpha blending, stencil,
- * W-buffering, stipple, anti-aliasing and SLI. Pixels that would need any of
- * them are counted in CsimStats.unsimulated and drawn without it.
+ * Only TMU0 textures; TMU1 is assumed to pass on 0. Not simulated are also
+ * compressed, tiled and big textures, trilinear filtering, LOD dither, fog,
+ * alpha blending, stencil, W-buffering, stipple, anti-aliasing and SLI.
+ * Pixels that would need any of them are counted in CsimStats.unsimulated
+ * and drawn without it.
  */
 #ifndef CSIM_CHIP_HPP
 #define CSIM_CHIP_HPP
@@ -31,6 +35,7 @@
 #include "fbi_pixel_pipeline.hpp"
 #include "frame_buffer.hpp"
 #include "rasterization.hpp"
+#include "texture_unit.hpp"
 #include "triangle_setup.hpp"
 
 namespace csim {
@@ -108,6 +113,13 @@ private:
    * @param[in] cmd The command.
    */
   void go(Command cmd);
+  /**
+   * @brief Writes a register of a TMU.
+   * @param[in] tmu The TMU.
+   * @param[in] reg Offset of the register, without the chip field.
+   * @param[in] data The value written.
+   */
+  void storeTmu(int tmu, FxU32 reg, FxU32 data);
   /// @brief The mode registers, decoded.
   RenderState renderState() const;
 
@@ -120,7 +132,8 @@ private:
   ChipContext context_;
   FrameBuffer frameBuffer_{context_};
   FbiPixelPipeline fbiPixelPipeline_{context_, frameBuffer_};
-  Rasterizer rasterizer_{context_, fbiPixelPipeline_};
+  TextureUnit textureUnits_[kNumTmus] = {{context_, 0}, {context_, 1}};
+  Rasterizer rasterizer_{context_, textureUnits_[0], fbiPixelPipeline_};
   SetupUnit setupUnit_{context_};
   CommandFifo commandFifo_{context_, *this};
 

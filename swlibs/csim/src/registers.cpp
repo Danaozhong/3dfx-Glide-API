@@ -6,15 +6,7 @@ namespace csim {
 
 namespace {
 
-/**
- * @name Chip field of a 3D register address, see SST_CHIP_MASK in h3defs.h.
- * @{
- */
-constexpr int kChipFieldShift = 10;
-constexpr FxU32 kRegisterMask = 0x3FF;
-constexpr FxU32 kChipFbi = 0x1;
 constexpr FxU32 k3dRegisterSpace = 0x4000;  ///< Registers of all chips.
-/// @}
 
 /**
  * @brief Stores a float into a float register.
@@ -53,13 +45,19 @@ void Chip::storeFrameBuffer(FxU32 fbOffset, FxU32 data, FxU32 byteMask)
 
 void Chip::store3d(FxU32 offset, FxU32 data)
 {
-  // Other chip fields keep the write in plain memory, for reading back.
   const FxU32 chip = offset >> kChipFieldShift;
+  const FxU32 reg = offset & kRegisterMask;
+  bool stored = false;
+  for (int t = 0; t < kNumTmus; t++) {
+    if ((chip != 0) && !(chip & (kChipTmu0 << t))) continue;
+    storeTmu(t, reg, data);
+    stored = stored || (chip == (kChipTmu0 << t));
+  }
   if (chip != 0) {
-    std::memcpy(context_.base + SST_3D_OFFSET + offset, &data, sizeof(data));
+    // Other chip fields keep the write in plain memory, for reading back.
+    if (!stored) std::memcpy(context_.base + SST_3D_OFFSET + offset, &data, sizeof(data));
     if (!(chip & kChipFbi)) return;
   }
-  const FxU32 reg = offset & kRegisterMask;
 
   SstRegs &s = context_.sst();
   switch (reg) {
@@ -88,6 +86,20 @@ void Chip::store3d(FxU32 offset, FxU32 data)
     context_.stats->unsimulated++;  // needs the float to fixed conversion of the Fv* registers
     break;
   }
+}
+
+void Chip::storeTmu(int tmu, FxU32 reg, FxU32 data)
+{
+  // Palette entries go through nccTable0[4] to nccTable0[11] with bit 31 set.
+  constexpr FxU32 kPaletteStart = offsetof(SstRegs, nccTable0) + 4 * sizeof(FxU32);
+  constexpr FxU32 kPaletteEnd = offsetof(SstRegs, nccTable0) + 12 * sizeof(FxU32);
+  if ((reg >= kPaletteStart) && (reg < kPaletteEnd) && (data & 0x80000000u)) {
+    textureUnits_[tmu].storePalette(static_cast<int>((reg - offsetof(SstRegs, nccTable0)) / sizeof(FxU32)),
+                                    data);
+    return;
+  }
+  std::memcpy(context_.base + SST_3D_OFFSET + ((kChipTmu0 << tmu) << kChipFieldShift) + reg, &data,
+              sizeof(data));
 }
 
 RenderState Chip::renderState() const

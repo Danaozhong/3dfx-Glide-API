@@ -10,43 +10,6 @@ namespace {
 constexpr int kDitherMatrix[4][4] = {
     {0, 8, 2, 10}, {12, 4, 14, 6}, {3, 11, 1, 9}, {15, 7, 13, 5}};
 
-/// @brief The texture color; the TMUs are not simulated yet.
-constexpr FxU8 kTextureColor[4] = {0, 0, 0, 0};
-
-/**
- * @brief Brings the integer part of an iterator into [0, @p max], @p step
- * being its smallest increment.
- *
- * Out of range it saturates if @p clamp is set. Without clamping, one step
- * past either end still saturates, as the iteration can overshoot an edge of
- * the triangle by one; anything further wraps around.
- *
- * @param[in] value The integer part of the iterator.
- * @param[in] max The largest value, all ones.
- * @param[in] step The smallest increment.
- * @param[in] clamp Saturate instead of wrapping.
- */
-FxU32 saturateOrWrap(FxI32 value, FxI32 max, FxI32 step, bool clamp)
-{
-  if (value >= 0 && value <= max) return static_cast<FxU32>(value);
-  if (clamp || value == -step || value == max + step) {
-    return (value < 0) ? 0 : static_cast<FxU32>(max);
-  }
-  return static_cast<FxU32>(value) & static_cast<FxU32>(max);
-}
-
-/**
- * @brief An 8-bit channel from a 12.12 color iterator.
- * @param[in] value The iterator.
- * @param[in] clamp Saturate instead of wrapping, see saturateOrWrap().
- */
-FxU8 clampIterator(FxI32 value, bool clamp)
-{
-  const FxI32 i =
-      signExtend(static_cast<FxU32>(value) >> SST_RGBA_FRACBITS, 8 + kIteratorOverflowBits);
-  return static_cast<FxU8>(saturateOrWrap(i, 0xFF, 1, clamp));
-}
-
 /**
  * @brief The kDepthBits pixel depth from the Z iterator.
  *
@@ -174,7 +137,7 @@ void FbiPixelPipeline::shade(const Fragment &fragment, const RenderState &state)
   colors.iterated[1] = clampIterator(fragment.g, state.clampIterators);
   colors.iterated[2] = clampIterator(fragment.b, state.clampIterators);
   colors.iterated[3] = clampIterator(fragment.a, state.clampIterators);
-  colors.texture = kTextureColor;
+  colors.texture = fragment.texture;
   colors.color0 = state.color0;
   colors.color1 = state.color1;
   FxU32 z = clampDepth(fragment.z64, is32Bpp, state.clampIterators);
@@ -194,8 +157,17 @@ void FbiPixelPipeline::shade(const Fragment &fragment, const RenderState &state)
   }
   if (alphaMaskFailed) return;
 
-  FxU8 mselect7[3];
-  colors.rgb(state.mselect7, mselect7);
+  CombineInputs inputs;
+  colors.rgb(state.mselect7, inputs.mselect7);
+  for (int i = 0; i < 3; i++) {
+    inputs.mlod[i] = colors.texture[3];
+    inputs.mlodFrac[i] = colors.texture[i];
+    inputs.addBoth[i] = colors.texture[i];
+  }
+  inputs.alphaMlod = colors.texture[3];
+  inputs.alphaMlodFrac = colors.iterated[3];
+  inputs.alphaMaiter = static_cast<FxU8>(colors.color1 >> 24);
+  inputs.alphaAddBoth = colors.texture[3];
 
   FxU8 local[4];
   if (state.localRgbFromTextureAlpha) {
@@ -205,8 +177,8 @@ void FbiPixelPipeline::shade(const Fragment &fragment, const RenderState &state)
   }
   local[3] = colors.alpha(state.localAlpha);
 
-  combineColor(local, other, mselect7, colors.texture, state.combine);
-  combineAlpha(local, other, colors.iterated, colors.texture, state.combine);
+  combineColor(local, other, inputs, state.combine);
+  combineAlpha(local, other, inputs, state.combine);
 
   if (state.alphaTest && !state.alphaFunc.passes(local[3], state.alphaRef)) {
     increment(s.stats.fbiAfuncFail);

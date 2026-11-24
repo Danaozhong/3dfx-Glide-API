@@ -16,6 +16,7 @@ add_library(csim STATIC
     src/rasterization.cpp
     src/registers.cpp
     src/render_state.cpp
+    src/texture_unit.cpp
     src/triangle_setup.cpp
 )
 target_compile_features(csim PRIVATE cxx_std_17)
