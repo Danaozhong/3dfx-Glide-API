@@ -79,6 +79,6 @@ if(BUILD_HAL_CSIM)
         set_tests_properties(3dfx_${program} PROPERTIES
             LABELS 3dfx
             TIMEOUT 120
-            ENVIRONMENT "CSIM_DUMP=${GLIDE_3DFX_IMAGE_DIR}/${program}_")
+            ENVIRONMENT "CSIM_DUMP=${GLIDE_3DFX_IMAGE_DIR}/${program}_;CSIM_WINDOW=0")
     endforeach()
 endif()
