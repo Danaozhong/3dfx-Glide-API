@@ -1644,7 +1644,7 @@ static FxBool _grLfbLock (GrLock_t type, GrBuffer_t buffer,
         if(gc->textureBuffer.on && 
            (buffer == GR_BUFFER_TEXTUREBUFFER_EXT || buffer == GR_BUFFER_TEXTUREAUXBUFFER_EXT)) {
           if(type == GR_LFB_READ_ONLY) {
-            info->lfbPtr         = (void *)((unsigned long)gc->rawLfb + gc->textureBuffer.addr);
+            info->lfbPtr         = (void *)((size_t)gc->rawLfb + gc->textureBuffer.addr);
             info->strideInBytes  = gc->textureBuffer.stride;
 #if __POWERPC__
             if(IS_NAPALM(gc->bInfo->pciInfo.deviceID)) {
@@ -1666,7 +1666,7 @@ static FxBool _grLfbLock (GrLock_t type, GrBuffer_t buffer,
                   (!pixelPipeline) &&
                   /* Origin must be upper left since we will return raw lfb */
                   (origin != GR_ORIGIN_LOWER_LEFT)) {
-            info->lfbPtr        = (void *)((unsigned long)gc->rawLfb + gc->textureBuffer.addr);
+            info->lfbPtr        = (void *)((size_t)gc->rawLfb + gc->textureBuffer.addr);
             info->strideInBytes = gc->textureBuffer.stride;
           }
 #endif
@@ -2296,7 +2296,7 @@ _grLfbWriteRegion(FxBool pixPipelineP,
 	  }
 #else
       length  = src_width * 2;
-      aligned = !((long)dstData&0x2);
+      aligned = !((size_t)dstData&0x2);
       srcJump = src_stride - length;
       dstJump = info.strideInBytes - length;
       if (aligned) {
@@ -2553,7 +2553,7 @@ static FxBool grLfbReadRegionOrigin (GrBuffer_t src_buffer, GrOriginLocation_t o
      FxU32 src_adjust,dst_adjust,tmp;
 
      /* set length - alignment fix*/
-     tmp=((unsigned long)src)&2;
+     tmp=((size_t)src)&2;
      len -= tmp;
      src_adjust=info.strideInBytes - tmp;
      dst_adjust=dst_stride - tmp;
@@ -2564,7 +2564,7 @@ static FxBool grLfbReadRegionOrigin (GrBuffer_t src_buffer, GrOriginLocation_t o
      if(!gc->state.forced32BPP) {
        while(src_height--) {
          /* adjust starting alignment */
-         if (((unsigned long)src)&3) {
+         if (((size_t)src)&3) {
            /* Old code: *((FxU16 *)dst)++ = *((FxU16 *)src)++; */
            FxU16 *p = (FxU16 *)dst;
            *p = *((FxU16 *)src);
@@ -2579,12 +2579,12 @@ static FxBool grLfbReadRegionOrigin (GrBuffer_t src_buffer, GrOriginLocation_t o
 
            /* copies aligned dwords */
            do {
-             *((FxU32 *)(((unsigned long)dst) + byte_index))=*((FxU32 *)(((unsigned long)src) + byte_index));
+             *((FxU32 *)(((size_t)dst) + byte_index))=*((FxU32 *)(((size_t)src) + byte_index));
            } while((byte_index+=4)<aligned);
 
            /* handle backend misalignment */
            if(byte_index!=(FxU32)len) {
-               *((FxU16 *)(((unsigned long)dst) + byte_index))=*((FxU16 *)(((unsigned long)src) + byte_index));
+               *((FxU16 *)(((size_t)dst) + byte_index))=*((FxU16 *)(((size_t)src) + byte_index));
            }
          }
          /* adjust for next line */
@@ -2604,11 +2604,11 @@ static FxBool grLfbReadRegionOrigin (GrBuffer_t src_buffer, GrOriginLocation_t o
 
            /* copies aligned dwords */
            do {
-             FxU32 s =*((FxU32 *)(((unsigned long)src) + byte_index));
+             FxU32 s =*((FxU32 *)(((size_t)src) + byte_index));
              FxU16 d = (FxU16) (s & 0xF8) >> 3;
              d |= (s & 0xFC00) >> 5;
              d |= (s & 0xF80000) >> 8;
-             *((FxU16 *)(((unsigned long)dst_data) + (byte_index2))) = d;
+             *((FxU16 *)(((size_t)dst_data) + (byte_index2))) = d;
              byte_index +=4;
            } while((byte_index2+=2)<(src_width*2));
          }
@@ -2626,11 +2626,11 @@ static FxBool grLfbReadRegionOrigin (GrBuffer_t src_buffer, GrOriginLocation_t o
 
            /* copies aligned dwords */
            do {
-             FxU32 s =*((FxU32 *)(((unsigned long)src) + byte_index));
+             FxU32 s =*((FxU32 *)(((size_t)src) + byte_index));
              FxU16 d = (FxU16) (s & 0xF8) >> 3;
              d |= (s & 0xF800) >> 6;
              d |= (s & 0xF80000) >> 9;
-             *((FxU16 *)(((unsigned long)dst_data) + (byte_index2))) = d;
+             *((FxU16 *)(((size_t)dst_data) + (byte_index2))) = d;
              byte_index +=4;
            } while((byte_index2+=2)<(src_width*2));
          }
@@ -2700,7 +2700,7 @@ GR_ENTRY(grLfbReadRegion, FxBool, (GrBuffer_t src_buffer,
     length   = src_width * 2;
     dstJump  = dst_stride - length;
     srcJump  = info.strideInBytes - length;
-    aligned  = !((long)srcData&0x2);
+    aligned  = !((size_t)srcData&0x2);
     odd      = (src_y+src_height) & 0x1;
     
 #if __POWERPC__

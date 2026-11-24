@@ -221,7 +221,7 @@
 #define OUTBOUNDS(a) (OUTBOUNDSX(a) || OUTBOUNDSY(a))
 
 /* access an array of four-byte opaque datums with a byte index */
-#define ARRAY(p,i)    (*(int *)((i)+(long)(p)))
+#define ARRAY(p,i)    (*(int *)((char *)(p) + (i)))
 
 /*---------------------------------------------------------------------------
 ** grDrawPoint
