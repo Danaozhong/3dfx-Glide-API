@@ -19,6 +19,8 @@
 **   as "W <board> <offset> <value>".
 ** - CSIM_DUMP: a file name prefix; the swapped images are written to
 **   "<CSIM_DUMP><n>.ppm", see src/frame_buffer.hpp.
+** - CSIM_WINDOW: 0 disables the window that shows the swapped images, see
+**   src/display.hpp.
 **
 */
 #ifndef __CSIM_H__

@@ -3,6 +3,7 @@
 #include <cstring>
 #include <string>
 
+#include "display.hpp"
 #include "frame_buffer.hpp"
 
 namespace csim {
@@ -130,6 +131,7 @@ void FrameBuffer::captureImage(const BufferLayout &buffer, PixelFormat format, F
   }
 
   dumpImage();
+  showImage(image_.data(), width, height);
   swapCount_++;
 }
 

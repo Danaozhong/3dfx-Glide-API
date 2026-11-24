@@ -41,6 +41,37 @@ target_compile_definitions(csim PRIVATE
 )
 set_target_properties(csim PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+# The window that shows the swapped images, see src/display.hpp. Windows has
+# it built in; elsewhere it needs Qt (Gui is enough).
+if(WIN32)
+    target_sources(csim PRIVATE src/display_win32.cpp)
+    target_link_libraries(csim PRIVATE user32 gdi32)
+else()
+    option(CSIM_WITH_QT "Show the swapped images of the chip simulator in a Qt window, if Qt is found" ON)
+    # With -m32 on a 64-bit compiler, find_package would find the 64-bit Qt.
+    if(CSIM_WITH_QT AND BUILD_32BIT AND NOT GLIDE_COMPILER_IS_32BIT)
+        message(STATUS "Chip simulator: no Qt window in the -m32 build")
+    elseif(CSIM_WITH_QT)
+        find_package(Qt6 QUIET COMPONENTS Gui)
+        if(Qt6_FOUND)
+            set(CSIM_QT_GUI Qt6::Gui)
+        else()
+            find_package(Qt5 QUIET COMPONENTS Gui)
+            if(Qt5_FOUND)
+                set(CSIM_QT_GUI Qt5::Gui)
+            endif()
+        endif()
+    endif()
+    if(CSIM_QT_GUI)
+        message(STATUS "Chip simulator: swapped images are shown in a window (${CSIM_QT_GUI})")
+        target_sources(csim PRIVATE src/display_qt.cpp)
+        target_link_libraries(csim PRIVATE ${CSIM_QT_GUI})
+    else()
+        message(STATUS "Chip simulator: no window for the swapped images")
+        target_sources(csim PRIVATE src/display_none.cpp)
+    endif()
+endif()
+
 # The Glide DLL is then linked as C++. Link the C++ runtime of MinGW
 # statically, so the DLL does not need libstdc++-6.dll and libgcc next to it.
 if(MINGW)
