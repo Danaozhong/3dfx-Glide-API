@@ -43,7 +43,11 @@ if(GLIDE_MULTI_CONFIG)
 else()
     set(GLIDE_3DFX_DIR ${CMAKE_CURRENT_BINARY_DIR})
 endif()
-set(GLIDE_3DFX_COPY COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GLIDE_3DFX_TEXTURES} ${GLIDE_3DFX_DIR})
+# The directory of a multi-config generator does not exist before the programs
+# are linked into it, but this target runs first.
+set(GLIDE_3DFX_COPY
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${GLIDE_3DFX_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GLIDE_3DFX_TEXTURES} ${GLIDE_3DFX_DIR})
 if(WIN32)
     list(APPEND GLIDE_3DFX_COPY
          COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:${CMAKE_PROJECT_NAME}> ${GLIDE_3DFX_DIR})
