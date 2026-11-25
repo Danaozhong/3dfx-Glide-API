@@ -235,6 +235,31 @@ void FbiPixelPipeline::fill(int x, int y, const RenderState &state)
   }
 }
 
+void FbiPixelPipeline::lfbWrite(int x, int y, const LfbPixel &pixel, bool pixelPipeline,
+                                const RenderState &state)
+{
+  RenderState writes = state;
+  writes.rgbWrite = pixel.hasColor && (state.rgbWrite || !pixelPipeline);
+  writes.auxWrite = pixel.hasDepth && (state.auxWrite || !pixelPipeline);
+  writes.alphaBuffer = false;
+  if (pixelPipeline) {
+    context_.stats->unsimulated++;
+  } else {
+    // Bypassing the pipeline, the pixel is stored as it is.
+    writes.dither = Dither::None;
+    writes.colorWriteMask = 0xFFFFFFFF;
+    writes.alpha1555 = Alpha1555::Source;
+    writes.stencilWriteMask = 0;
+  }
+  if (!writes.rgbWrite && !writes.auxWrite) return;
+
+  FxU32 z = pixel.z;
+  if ((state.format == PixelFormat::Argb8888) && !writes.auxWrite) {
+    z = frameBuffer_.readPixel(state.aux, x, y);
+  }
+  ditherAndWrite(x, y, pixel.r, pixel.g, pixel.b, pixel.a, z, writes);
+}
+
 void FbiPixelPipeline::ditherAndWrite(int x, int y, FxU32 r, FxU32 g, FxU32 b, FxU32 a, FxU32 z,
                                    const RenderState &state)
 {

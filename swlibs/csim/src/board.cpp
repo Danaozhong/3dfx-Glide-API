@@ -122,6 +122,10 @@ bool Board::isFifoWrite(FxU32 offset) const
 
 Write Board::written(FxU32 offset, FxU32 size, FxU32 data)
 {
+  if (SST_IS_LFB_ADDR(offset)) {
+    chip_.lfbWrite(offset - SST_LFB_OFFSET, data, size);
+    return Write::Register;
+  }
   if (size != 4) return Write::Register;
 
   if (isFifoWrite(offset)) {

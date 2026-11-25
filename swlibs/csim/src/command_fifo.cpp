@@ -184,10 +184,16 @@ void CommandFifo::frameBufferWord(FxU32 data)
     } else if (wordCount_ == 1) {
       byteMask = (packetWord_ & SSTCP_PKT5_BYTEN_WN) >> SSTCP_PKT5_BYTEN_WN_SHIFT;
     }
-    if ((packetWord_ & SSTCP_PKT5_SPACE) == SSTCP_PKT5_LFB) {
+    switch (packetWord_ & SSTCP_PKT5_SPACE) {
+    case SSTCP_PKT5_LFB:
       bus_.storeFrameBuffer(registerPtr_, data, byteMask);
-    } else {
-      context_.stats->unsimulated++;  // YUV, 3D LFB and texture port
+      break;
+    case SSTCP_PKT5_3DLFB:
+      bus_.store3dLfb(registerPtr_, data, byteMask);
+      break;
+    default:
+      context_.stats->unsimulated++;  // YUV and texture port
+      break;
     }
     registerPtr_ += 4;
     wordCount_--;
