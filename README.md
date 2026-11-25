@@ -41,7 +41,13 @@ The current implementation is still very basic and only supports triangle render
 The chip simulator displays the rendering output in a separate window. On Windows, it uses the Win32 API, on Linux and macOS it uses Qt. The window can be turned off for unit or CI tests using a CMake switch.
 
 ### The 3dfx SDK Examples
-`examples/3dfx` contains the original test programs of the 3dfx Glide3 SDK (`test00` to `test49`, `sbench` and `display`), each showing one Glide feature. They are built with `-DGLIDE_BUILD_3DFX_EXAMPLES=ON`. With `-DBUILD_HAL_CSIM=ON`, they run on the chip simulator:
+`examples/3dfx` contains the original test programs of the 3dfx Glide3 SDK (`test00` to `test49`, `sbench` and `display`), each showing one Glide feature. They are built with `-DGLIDE_BUILD_3DFX_EXAMPLES=ON`. With `-DBUILD_HAL_CSIM=ON`, they run on the chip simulator.
+
+![test24 running on macOS](docs/csim_running_macos.png)
+
+`test24` running 3dfx Glide on macOS using the chip simulator (anti-aliasing is not working yet).
+
+Build the examples as follows:
 ```sh
 mkdir bin_examples
 cd bin_examples
