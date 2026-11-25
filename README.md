@@ -44,6 +44,10 @@ The current implementation is still very basic and only supports triangle render
 
 The chip simulator displays the rendering output in a separate window. On Windows, it uses the Win32 API, on Linux and macOS it uses Qt. The window can be turned off for unit or CI tests using a CMake switch.
 
+The chip simulator is not a Glide emulator: it does not wrap the Glide calls to a different rendering API such as OpenGL. Instead, this simulator sits one level lower and simulates the 3dfx chip itself. The Glide API works exactly as it does with a real 3dfx video card. The chip simulator pretends to be a 3dfx device (`0x121A`), and is then initialized by the Glide API.
+
+The simulator is very slow, but speed was not the goal. Instead, `CSIM` was developed to replicate the real 3dfx hardware as accurate as possible. Although not implemented yet, it will include all the original features and quirks, such as T-Buffer effects, RGSS anti-aliasing, and SLI artifacts.
+
 ### The 3dfx SDK Examples
 `examples/3dfx` contains the original test programs of the 3dfx Glide3 SDK (`test00` to `test49`, `sbench` and `display`), each showing one Glide feature. They are built with `-DGLIDE_BUILD_3DFX_EXAMPLES=ON`. With `-DBUILD_HAL_CSIM=ON`, they run on the chip simulator.
 
