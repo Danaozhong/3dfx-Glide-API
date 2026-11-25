@@ -18,6 +18,7 @@
 ** COPYRIGHT 3DFX INTERACTIVE, INC. 1999, ALL RIGHTS RESERVED
 */
 
+#include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <termios.h>
@@ -38,6 +39,12 @@ static void reset_term() {
 static void do_init() {
   struct termios termdata;
 
+  /* Without a terminal, e.g. in a CI pipeline, keys come from a plain file
+   * or pipe, which needs no raw mode. */
+  if (!isatty(0)) {
+    init_done=1;
+    return;
+  }
   if (tcgetattr(0, &termdata)<0) {
     fprintf(stderr, "Failed to get termio data for stdin\n");
     return;
@@ -55,6 +62,7 @@ static void do_init() {
 int lin_kbhit() {
   fd_set set;
   struct timeval to;
+  int pending=0;
 
   if (!init_done) do_init();
   FD_ZERO(&set);
@@ -62,6 +70,8 @@ int lin_kbhit() {
   to.tv_sec=0;
   to.tv_usec=0;
   if (select(1, &set, 0, 0, &to)<1) return 0;
+  /* At the end of a file stdin is readable, but there is no key. */
+  if (ioctl(0, FIONREAD, &pending)<0 || pending<1) return 0;
   return 1;
 }
 

@@ -77,7 +77,8 @@ main( int argc, char **argv)
   str = grGetString( GR_VERSION );
   
   printf("Test 37 - grGet() Stress Test. All output goes to the Console.\n\n");
-  tlGetCH ();
+  if (argc < 2 || strcmp(argv[1], "-n"))
+    tlGetCH ();
   
   /* Test the Num Boards Call before we do the win open*/
   TestGet("GR_NUM_BOARDS", GR_NUM_BOARDS, 1 , &val4[0], &failures);
@@ -307,7 +308,7 @@ main( int argc, char **argv)
  __errExit:    
   grGlideShutdown();
   
-  return 0;
+  return (failures || !gc) ? 1 : 0;
 } /* main */
 
 

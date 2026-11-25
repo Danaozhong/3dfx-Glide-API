@@ -154,7 +154,7 @@ int main( int argc, char **argv) {
     tlConOutput( "Press any other key to quit\n" );
     while( frames-- && tlOkToRender()) {
         GrVertex vtxA, vtxB, vtxC;
-        char str[32];
+        char str[64];
 
         if (hwconfig == TL_VOODOORUSH) {
           tlGetDimsByConst(resolution,

@@ -581,9 +581,7 @@ GR_DIENTRY(grGet, FxU32, (FxU32 pname, FxU32 plength, FxI32 *params))
     if (plength == 4) {
       GR_DCL_GC;
 
-#ifdef GLIDE_INIT_HWC
-        *params = gc->bInfo->h3Mem << 20;
-#endif
+      *params = gc->bInfo ? (gc->bInfo->h3Mem << 20) : 0;
 
       retVal = plength;
     }
@@ -630,8 +628,7 @@ GR_DIENTRY(grGet, FxU32, (FxU32 pname, FxU32 plength, FxI32 *params))
     if (plength == 4) {
       GR_DCL_GC;
 
-#ifdef GLIDE_INIT_HWC
-      switch (gc->bInfo->pciInfo.deviceID) {
+      switch (gc->bInfo ? gc->bInfo->pciInfo.deviceID : 0) {
       case SST_DEVICE_ID_H3:
         *params = 0x1000;  /* banshee */
         break;
@@ -642,7 +639,6 @@ GR_DIENTRY(grGet, FxU32, (FxU32 pname, FxU32 plength, FxI32 *params))
       default:
           *params = 0;
       }
-#endif
         
       retVal = plength;
     }

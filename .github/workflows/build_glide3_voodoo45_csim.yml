@@ -8,7 +8,7 @@ name: Build Glide3x for Voodoo4/5 Library (HAL_CSIM, chip simulator)
 # not simulated yet.
 # The integration tests in tests/csim render through Glide and check the
 # swapped images: on Linux (GCC, x64 and x32) and on Windows (MSVC, x64 and
-# x32).
+# x32). The 3dfx SDK examples run in build_glide3_voodoo45_3dfx_examples.yml.
 # The MinGW cross builds do not build the tests: GoogleTest needs std::mutex,
 # which MinGW with the win32 thread model does not have.
 

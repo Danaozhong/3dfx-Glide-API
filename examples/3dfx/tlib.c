@@ -29,7 +29,7 @@
 
 #include <glide.h>
 
-#ifdef __unix__
+#if defined(__unix__) || defined(__APPLE__)
 #include <limits.h>
 #define _MAX_PATH PATH_MAX
 unsigned long hWndMain;
@@ -2179,7 +2179,7 @@ tlScreenDump
   return FXTRUE;
 }
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include <linutil.h>
 
 /*-------------------------------------------------------------------

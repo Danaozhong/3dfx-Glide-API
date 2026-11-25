@@ -262,10 +262,10 @@ int tlLoadTexture( const char *filename,
 /* Don't do this muckage if this is a DOS build since 
  * it is already a 'console' app.
  */
-#if !__DOS32__ && !macintosh && !__unix__ && !defined(__linux__)
+#if !__DOS32__ && !macintosh && !__unix__ && !defined(__linux__) && !defined(__APPLE__)
 /* redefine main proc to something else */
 #define main mainT
-#endif /* !__DOS32__ && !macintosh && !__unix__ && !defined(__linux__) */
+#endif /* !__DOS32__ && !macintosh && !__unix__ && !defined(__linux__) && !defined(__APPLE__) */
 
 #if macintosh
 extern char *strdup(const char *src);

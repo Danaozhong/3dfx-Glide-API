@@ -31,7 +31,7 @@ int hwconfig;
 
 static const char name[]    = "test36";
 static const char purpose[] = "screen resolutions";
-static const char usage[]   = "-p show passed, -n no progress";
+static const char usage[]   = "-p show passed, -n no progress and no key presses";
 
 static const char status[]  = "-\\|/";
 
@@ -46,13 +46,14 @@ int main( int argc, char **argv) {
         GrContext_t context;
 
         printf ( "Test36 - Glide resolution checker.  All output goes to the console.\n\n" );
-        tlGetCH ();
         for ( i=1; i < argc; i++ ) {
                 if ( !strcmp ( argv[i], "-p" ) )
                         bShowPassed = FXTRUE;
                 if ( !strcmp ( argv[i], "-n" ) )
                         bNoProgress = FXTRUE;
         }
+        if ( !bNoProgress )
+                tlGetCH ();
 
         grGlideInit ();
         resTemplate.resolution = GR_QUERY_ANY;
@@ -109,9 +110,13 @@ int main( int argc, char **argv) {
         else
             printf ( "This test passed.  " );
 
-        printf ( "Press any key.\n" );
-        tlGetCH ();
-        return 0;
+        if ( bNoProgress ) {
+                printf ( "\n" );
+        } else {
+                printf ( "Press any key.\n" );
+                tlGetCH ();
+        }
+        return iFailures ? 1 : 0;
 }
 
 
