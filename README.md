@@ -2,6 +2,8 @@
 
 This is the source code to 3Dfx Glide for Voodoo graphics accelerators. It's forked from the original CVS repo of Glide open source project at sourceforge:  https://sourceforge.net/projects/glide/
 
+The code has been ported to CMake and works on all major modern platforms (Linux, macOS and Windows), and supports cross-compilation for Win9x. All builds are automated in the CI.
+
 The source is licensed under 3DFX GLIDE Source Code General Public License.
 
 
@@ -35,6 +37,8 @@ The toolchain is ported to CMake to simplify cross-platform builds, and get rid 
 3dfx engineers initially used a software implementation (`CSIM`) of the Napalm chip to test driver development. Although leaked, the source code of this simulator is proprietary. However, it gives us insights into how the Napalm chip behaves internally: how the command FIFO takes the commands from the driver, how the registers are mapped, and more. This knowledge was used to re-implement the chip simulator in C++ (`swlibs/csim`).
 
 ![The first time the chip simulator displayed something](docs/first_rendering.png)
+
+The simulator allows developing and testing the Glide API even for systems where 3dfx hardware is not available. It can be used on all major platforms (Windows, Linux and macOS).
 
 The current implementation is still very basic and only supports triangle rendering and a limited featureset of one TMU. Geometry transformation and lighting are calculated on the CPU, just like in real Glide games of the time.
 
