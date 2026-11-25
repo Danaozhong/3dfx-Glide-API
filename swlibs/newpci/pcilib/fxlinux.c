@@ -26,11 +26,14 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
-#ifdef __linux__
+/* Without /dev/3dfx, the ports are accessed directly, which needs x86. */
+#if defined(__linux__) && (defined(__i386__) || defined(__x86_64__))
 #include <sys/io.h>
+#define FX_DIRECT_PORT_IO 1
 #endif
 #ifdef __FreeBSD__
 #include <machine/cpufunc.h>
+#define FX_DIRECT_PORT_IO 1
 #endif
 #include <fcntl.h>
 #include "fxpci.h"
@@ -197,8 +200,10 @@ pciInitializeLinux(void)
 #ifdef __FreeBSD__
     freebsdIoFd=open("/dev/io", O_RDWR, 0);
     if (freebsdIoFd<0) {
-#else
+#elif defined(FX_DIRECT_PORT_IO)
     if (iopl(3)<0) {
+#else
+    {
 #endif
       pciErrorCode = PCI_ERR_NO_IO_PERM;
       return FXFALSE;
@@ -216,7 +221,7 @@ pciShutdownLinux(void)
 #ifdef __FreeBSD__
     if (freebsdIoFd>=0)
       close(freebsdIoFd);
-#else
+#elif defined(FX_DIRECT_PORT_IO)
     iopl(0);
 #endif
   }
@@ -268,7 +273,11 @@ pciPortInByteLinux(unsigned short port)
   struct pioData desc;
 
   if (linuxDevFd==-1) {
+#ifdef FX_DIRECT_PORT_IO
     tmp=inb(port);
+#else
+    tmp=0;
+#endif
     /* fprintf(stderr, "Read byte at %x got %d\n", port, tmp); */
     return tmp;
   }
@@ -288,7 +297,11 @@ pciPortInWordLinux(unsigned short port)
   struct pioData desc;
 
   if (linuxDevFd==-1) {
+#ifdef FX_DIRECT_PORT_IO
     tmp=inw(port);
+#else
+    tmp=0;
+#endif
     /* fprintf(stderr, "Read word at %x got %x\n", port, tmp); */
     return tmp;
   }
@@ -308,7 +321,11 @@ pciPortInLongLinux(unsigned short port)
   struct pioData desc;
 
   if (linuxDevFd==-1) {
+#ifdef FX_DIRECT_PORT_IO
     tmp=inl(port);
+#else
+    tmp=0;
+#endif
     /* fprintf(stderr, "Read long at %x got %x\n", port, tmp); */
     return tmp;
   }
@@ -328,10 +345,12 @@ pciPortOutByteLinux(unsigned short port, FxU8 data)
   /* fprintf(stderr, "write byte=%d desc at %x data at %x\n", data,
       &desc, &data); */
   if (linuxDevFd==-1) {
-#ifdef __linux__
+#if defined(__linux__) && defined(FX_DIRECT_PORT_IO)
     outb(data, port);
-#else
+#elif defined(FX_DIRECT_PORT_IO)
     outb(port, data);
+#else
+    return FXFALSE;
 #endif
     return FXTRUE;
   }
@@ -348,10 +367,12 @@ pciPortOutWordLinux(unsigned short port, FxU16 data)
   /* fprintf(stderr, "write word=%x to port=%x desc at %x data at %x\n", 
 	  data, port, &desc, &data); */
   if (linuxDevFd==-1) {
-#ifdef __linux__
+#if defined(__linux__) && defined(FX_DIRECT_PORT_IO)
     outw(data, port);
-#else
+#elif defined(FX_DIRECT_PORT_IO)
     outw(port, data);
+#else
+    return FXFALSE;
 #endif
     return FXTRUE;
   }
@@ -368,10 +389,12 @@ pciPortOutLongLinux(unsigned short port, FxU32 data)
   /* fprintf(stderr, "write long=%x to port=%x desc at %x data at %x\n", 
 	  data, port, &desc, &data); */
   if (linuxDevFd==-1) {
-#ifdef __linux__
+#if defined(__linux__) && defined(FX_DIRECT_PORT_IO)
     outl(data, port);
-#else
+#elif defined(FX_DIRECT_PORT_IO)
     outl(port, data);
+#else
+    return FXFALSE;
 #endif
     return FXTRUE;
   }

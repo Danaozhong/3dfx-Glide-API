@@ -1,0 +1,75 @@
+name: Build Glide3x for Voodoo4/5 Library (HAL_CSIM, macOS)
+
+# Builds Glide3x with HAL_CSIM natively on macOS (Apple Silicon), where the
+# hardware is accessed through the chip simulator (swlibs/csim). Runs the
+# integration tests in tests/csim, renders the teapot, builds the 3dfx
+# Glide3 SDK examples and runs each of them for 3 frames on the chip simulator
+# (ctest label 3dfx).
+# Qt is installed so that the simulator window is built too; the tests turn it
+# off (CSIM_WINDOW=0), as the runner has no display.
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build_csim_macos:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Qt
+      run: |
+        brew install qtbase
+
+    - name: Generate Fx Build Number Tool
+      working-directory: "glide3x/h5/glide3/src/"
+      run: |
+        mkdir -p fxbldno_tool/bin
+        cd fxbldno_tool/bin
+        cmake ..
+        cmake --build .
+
+    - name: Generate Build Number Header Files
+      working-directory: "glide3x/h5/glide3/src/"
+      run: |
+        ./fxbldno_tool/bin/fxbldno > fxbldno.h
+
+    - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, macOS, arm64)
+      run: |
+        mkdir bin_csim_macos
+        cd bin_csim_macos
+        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_HAL_CSIM=ON -DGLIDE_BUILD_TESTS=ON \
+              -DGLIDE_BUILD_3DFX_EXAMPLES=ON .. | tee configure.log
+        grep -q "swapped images are shown in a window" configure.log
+        cmake --build . -j4
+
+    - name: Run Integration Tests and 3dfx Examples (HAL_CSIM, macOS, arm64)
+      working-directory: bin_csim_macos
+      run: |
+        ctest --output-on-failure -j4 < /dev/null
+
+    - name: Render the Teapot Example (HAL_CSIM, macOS, arm64)
+      working-directory: bin_csim_macos
+      env:
+        CSIM_WINDOW: "0"
+      run: |
+        ./examples/csim_teapot/csim_teapot 1 csim_teapot_macos_
+
+    - name: Upload the Rendered Teapot
+      uses: actions/upload-artifact@v4
+      with:
+        name: csim_teapot_macos
+        path: bin_csim_macos/csim_teapot_macos_000.png
+
+    - name: Upload the Rendered 3dfx Example Images
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: 3dfx_example_images_macos
+        path: bin_csim_macos/examples/3dfx/images
+        if-no-files-found: ignore

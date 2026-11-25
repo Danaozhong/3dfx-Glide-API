@@ -65,11 +65,11 @@ float fxTime(void)
 #else
 #include <sys/types.h>
 #include <sys/times.h>
-#include <sys/param.h>
+#include <unistd.h>
 float fxTime(void)
 {
     struct tms foo;
-    return times(&foo)/(float)HZ;
+    return times(&foo)/(float)sysconf(_SC_CLK_TCK);
 }
 #endif
 
