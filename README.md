@@ -2,6 +2,8 @@
 
 This is the source code to 3Dfx Glide for Voodoo graphics accelerators. It's forked from the original CVS repo of Glide open source project at sourceforge:  https://sourceforge.net/projects/glide/
 
+The code has been ported to CMake and works on all major modern platforms (Linux, macOS and Windows), and supports cross-compilation for Win9x. All builds are automated in the CI.
+
 The source is licensed under 3DFX GLIDE Source Code General Public License.
 
 
@@ -32,16 +34,33 @@ The toolchain is ported to CMake to simplify cross-platform builds, and get rid 
 
 
 ## `CSIM` - The Chip Simulator
+
+
+> The process of driver development and testing with the CSIM will allow significant portions of the hardware design and driver implementation to be verified well before chips come back. The act of writing the driver should flesh out any problems with the software interface to the chip. [...]
+(quote of the 3dfx engineers)
+
 3dfx engineers initially used a software implementation (`CSIM`) of the Napalm chip to test driver development. Although leaked, the source code of this simulator is proprietary. However, it gives us insights into how the Napalm chip behaves internally: how the command FIFO takes the commands from the driver, how the registers are mapped, and more. This knowledge was used to re-implement the chip simulator in C++ (`swlibs/csim`).
 
 ![The first time the chip simulator displayed something](docs/first_rendering.png)
+
+The simulator allows developing and testing the Glide API even for systems where 3dfx hardware is not available. It can be used on all major platforms (Windows, Linux and macOS).
 
 The current implementation is still very basic and only supports triangle rendering and a limited featureset of one TMU. Geometry transformation and lighting are calculated on the CPU, just like in real Glide games of the time.
 
 The chip simulator displays the rendering output in a separate window. On Windows, it uses the Win32 API, on Linux and macOS it uses Qt. The window can be turned off for unit or CI tests using a CMake switch.
 
+The chip simulator is not a Glide emulator: it does not wrap the Glide calls to a different rendering API such as OpenGL. Instead, this simulator sits one level lower and simulates the 3dfx chip itself. The Glide API works exactly as it does with a real 3dfx video card. The chip simulator pretends to be a 3dfx device (`0x121A`), and is then initialized by the Glide API.
+
+The simulator is very slow, but speed was not the goal. Instead, `CSIM` was developed to replicate the real 3dfx hardware as accurate as possible. Although not implemented yet, it will include all the original features and quirks, such as T-Buffer effects, RGSS anti-aliasing, and SLI artifacts.
+
 ### The 3dfx SDK Examples
-`examples/3dfx` contains the original test programs of the 3dfx Glide3 SDK (`test00` to `test49`, `sbench` and `display`), each showing one Glide feature. They are built with `-DGLIDE_BUILD_3DFX_EXAMPLES=ON`. With `-DBUILD_HAL_CSIM=ON`, they run on the chip simulator:
+`examples/3dfx` contains the original test programs of the 3dfx Glide3 SDK (`test00` to `test49`, `sbench` and `display`), each showing one Glide feature. They are built with `-DGLIDE_BUILD_3DFX_EXAMPLES=ON`. With `-DBUILD_HAL_CSIM=ON`, they run on the chip simulator.
+
+![test24 running on macOS](docs/csim_running_macos.png)
+
+`test24` running 3dfx Glide on macOS using the chip simulator (anti-aliasing is not working yet).
+
+Build the examples as follows:
 ```sh
 mkdir bin_examples
 cd bin_examples
