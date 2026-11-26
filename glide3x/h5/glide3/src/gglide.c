@@ -3145,7 +3145,7 @@ _grBufferNumPending(void)
     } while (depth0 != depth1);
 
     if (depth1 == 0) {
-      for(i = MAX_BUFF_PENDING; i >= 0; --i)
+      for(i = MAX_BUFF_PENDING - 1; i >= 0; --i)
         gc->bufferSwaps[i] = 0xffffffff;
       gc->swapsPending = 0;
       goto NPDONE;
@@ -3157,7 +3157,7 @@ _grBufferNumPending(void)
   **  behind us, and one where it's ahead of us.
   */
   if (readPtr < gc->lastSwapCheck) { /* We've wrapped */
-    for(i = MAX_BUFF_PENDING; i >= 0; --i) {
+    for(i = MAX_BUFF_PENDING - 1; i >= 0; --i) {
       /* If it's between the last check and the end of the FIFO or between the
        beginning of the FIFO and the current Read pointer, then it's gone
        */
@@ -3169,7 +3169,7 @@ _grBufferNumPending(void)
       }
     }
   } else {                      /* It's behind us */
-    for(i = MAX_BUFF_PENDING; i >= 0; --i) {
+    for(i = MAX_BUFF_PENDING - 1; i >= 0; --i) {
       if(gc->bufferSwaps[i] != 0xffffffff) {
         if((gc->bufferSwaps[i] >= gc->lastSwapCheck) && (gc->bufferSwaps[i] <= readPtr)) {
           --gc->swapsPending;

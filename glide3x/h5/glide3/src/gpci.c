@@ -1298,7 +1298,7 @@ _GlideInitEnvironment(void)
   /* dBorca - play safe */
   grErrorSetCallback(_grErrorDefaultCallback);
 
-#if 0
+#if GL_X86
   /* Get CPU Info before we detect glide devices */
   _cpuid (&_GlideRoot.CPUType);
 
@@ -1320,7 +1320,7 @@ _GlideInitEnvironment(void)
 #define GLIDE_34GETENV(__envVar, __defVal) \
   (((signed char)(atof(((envStr = GETENV(__envVar)) == NULL) ? (__defVal) : (envStr))*16.0f)+8)&0x7f)
 
-#if 0
+#if GL_X86
   /* No CPU Extensions Allowed */
   if (GLIDE_GETENV("FX_GLIDE_NO_CPU_EXTENSIONS", 0L))
   {
@@ -1780,7 +1780,7 @@ _GlideInitEnvironment(void)
    */
   _GlideRoot.environment.outputBpp = GLIDE_GETENV("FX_GLIDE_BPP", 0L);
   /* check for a valid value */
-  if(_GlideRoot.environment.outputBpp != 32 ||
+  if(_GlideRoot.environment.outputBpp != 32 &&
      _GlideRoot.environment.outputBpp != 15) {
     _GlideRoot.environment.outputBpp = 0;
   }
