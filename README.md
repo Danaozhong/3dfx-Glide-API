@@ -34,6 +34,11 @@ The toolchain is ported to CMake to simplify cross-platform builds, and get rid 
 
 
 ## `CSIM` - The Chip Simulator
+
+
+> The process of driver development and testing with the CSIM will allow significant portions of the hardware design and driver implementation to be verified well before chips come back. The act of writing the driver should flesh out any problems with the software interface to the chip. [...]
+(quote of the 3dfx engineers)
+
 3dfx engineers initially used a software implementation (`CSIM`) of the Napalm chip to test driver development. Although leaked, the source code of this simulator is proprietary. However, it gives us insights into how the Napalm chip behaves internally: how the command FIFO takes the commands from the driver, how the registers are mapped, and more. This knowledge was used to re-implement the chip simulator in C++ (`swlibs/csim`).
 
 ![The first time the chip simulator displayed something](docs/first_rendering.png)
