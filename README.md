@@ -139,6 +139,27 @@ cmake --build .
 ```
 The glide3x.dll should be generated in the bin_win32\glide3x\h5\Debug directory, ready for use.
 
+### Linux DRI Build (Obsolete)
+
+Glide3x for Voodoo3/4/5 can be built in two ways on Linux:
+* **Standalone (the default)**: Glide programs the card itself, through `minihwc`. It sets the video mode and accesses the hardware directly, so it needs root rights or the `/dev/3dfx` device, and takes over the screen. This is what Glide games and the examples use.
+* **DRI** (`-DUSE_DRI=ON`): Glide is only the backend of Mesa's `tdfx` OpenGL driver (`tdfx_dri.so`), and cannot be used directly by programs. The X server (`xf86-video-tdfx`) and the `tdfx` kernel module own the card. Mesa hands Glide the mapped registers, the frame buffer and the window position through the `grDRI*` functions of `glide3x/h5/minihwc/linhwc.c`, which replaces `minihwc`. This gave OpenGL acceleration on the X desktop, e.g. for Quake 3 on Linux.
+
+The DRI build is obsolete, as all the other parts it needs have been removed from Linux:
+* Mesa removed the `tdfx` driver, and all other DRI1 drivers, in Mesa 8.0 (February 2012). Mesa 7.11 is the last version with it.
+* The `tdfx` kernel module was marked obsolete in 2016, and removed in Linux 6.3 (April 2023), together with the other DRI1 kernel drivers. DRI1 predates kernel mode setting, and none of these drivers were updated for it.
+
+So it only works on Linux distributions from 2011 or older, which also had the matching X server. Current distributions, such as Ubuntu 22.04, no longer have the Mesa driver. The option is kept so that the code still compiles, for anyone running such a retro system.
+
+The DRI build needs the X11 headers (`libx11-dev` and `libxxf86vm-dev` on Debian/Ubuntu):
+```sh
+mkdir bin_dri
+cd bin_dri
+cmake -DCMAKE_BUILD_TYPE=Release -DUSE_DRI=ON ..
+cmake --build .
+```
+Mesa's `tdfx_dri.so` loads `libglide3-v5.so` (Voodoo4/5) or `libglide3.so`, so install the built `glide3x/h5/libGlide3x.so` under one of these names. The DRI build is only compiled, it has not been tested with Mesa and real hardware.
+
 ## Where to Download?
 The libraries are automatically built by the CI for every commit, so you can also use the CI builds (see the "Actions" tab https://github.com/Danaozhong/3dfx-Glide-API/actions for the download link).
 
