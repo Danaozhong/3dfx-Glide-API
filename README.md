@@ -17,6 +17,7 @@ The [Utah teapot](https://en.wikipedia.org/wiki/Utah_teapot) rendered with the G
 ![win-glide3-voodoo345-gcc-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo45_gcc.yml/badge.svg)
 ![glide3-voodoo45-csim-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo45_csim.yml/badge.svg)
 ![glide3-voodoo45-3dfx-examples](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo45_3dfx_examples.yml/badge.svg)
+![linux-glide3-voodoo45-dri-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo45_dri.yml/badge.svg)
 ![win-glide3-voodoo2-gcc-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo2.yml/badge.svg)
 ![win-glide2-voodoo3-gcc-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide2_voodoo3.yml/badge.svg)
 ![win-glide2-voodoo2-gcc-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide2_voodoo2.yml/badge.svg)
@@ -158,7 +159,7 @@ cd bin_dri
 cmake -DCMAKE_BUILD_TYPE=Release -DUSE_DRI=ON ..
 cmake --build .
 ```
-Mesa's `tdfx_dri.so` loads `libglide3-v5.so` (Voodoo4/5) or `libglide3.so`, so install the built `glide3x/h5/libGlide3x.so` under one of these names. The DRI build is only compiled, it has not been tested with Mesa and real hardware.
+Mesa's `tdfx_dri.so` loads `libglide3-v5.so` (Voodoo4/5) or `libglide3.so`, so install the built `glide3x/h5/libGlide3x.so` under one of these names. The CI only compiles the DRI build and checks the symbols of the library (`build_glide3_voodoo45_dri.yml`), it has not been tested with Mesa and real hardware.
 
 ## Where to Download?
 The libraries are automatically built by the CI for every commit, so you can also use the CI builds (see the "Actions" tab https://github.com/Danaozhong/3dfx-Glide-API/actions for the download link).
