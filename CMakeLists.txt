@@ -5,8 +5,14 @@ PROJECT(Glide3x VERSION 1.0 DESCRIPTION "Glide3x API for Voodoo3/4/5" LANGUAGES 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(GlideArch)
 
-OPTION(USE_DRI "no idea what DRI mode stands for" OFF)
-OPTION(USE_DGA "no idea what DRI mode stands for" OFF)
+# DRI (Direct Rendering Infrastructure) is the legacy rendering API for Linux. 
+# It required `tdfx`, which has been removed from the kernel since 2016 (6.3).
+# It is kept for now in case someone wants to use this library on an older
+# linu distribution (e.g. Ubuntu 22.04 LTS).
+OPTION(USE_DRI "Build for linux DRI. Requires tdfx, which is not present in modern linux kernels" OFF)
+
+
+OPTION(USE_DGA "no idea what DGA mode stands for" OFF)
 OPTION(EMBED_TEXUS2 "Embed Texus2 functions into Glide3" ON)
 OPTION(BUILD_HAL_CSIM
        "Build Glide3x for Voodoo4/5 against the chip simulator (HAL_CSIM) instead of real hardware. Uses the stub in swlibs/csim."
