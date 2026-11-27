@@ -1,12 +1,18 @@
 // Renders the Utah teapot with Glide on the simulated Voodoo4/5 board of the
-// HAL_CSIM build (swlibs/csim), and saves the swapped frames as PNG files.
+// HAL_CSIM build (swlibs/csim).
 //
-//   csim_teapot [frames] [prefix]
+//   csim_teapot
 //
-// Writes <prefix>000.png, <prefix>001.png, ... (default 1 frame, "teapot"),
+// Turns the teapot in the window of the simulator until the window is closed.
+// Without a window (no Qt, or CSIM_WINDOW=0), writes teapot000.png instead.
+//
+//   csim_teapot frames [prefix]
+//
+// Writes <prefix>000.png, <prefix>001.png, ... (default prefix "teapot"),
 // with the teapot turning a full circle over the frames.
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -28,6 +34,8 @@ namespace {
 
 constexpr int kWidth = 640;
 constexpr int kHeight = 480;
+constexpr float kStartAngle = 30.0f;
+constexpr float kDegreesPerSecond = 60.0f;
 
 std::uint32_t crc32(const unsigned char *data, std::size_t size, std::uint32_t crc = 0)
 {
@@ -103,14 +111,37 @@ bool writePng(const std::string &name, const CsimImage &image)
   return (std::fclose(file) == 0) && ok;
 }
 
+void drawFrame(teapot::Scene &scene, float angle)
+{
+  scene.draw(angle, kWidth, kHeight);
+  grBufferSwap(1);
+  grFinish();
+}
+
+// Writes the last swapped image to <prefix><frame>.png.
+bool saveFrame(const std::string &prefix, int frame)
+{
+  CsimImage image;
+  char number[16];
+  std::snprintf(number, sizeof(number), "%03d", frame);
+  const std::string name = prefix + number + ".png";
+  if (!csimGetSwappedImage(0, &image) || !writePng(name, image)) {
+    std::fprintf(stderr, "could not write %s\n", name.c_str());
+    return false;
+  }
+  std::printf("%s\n", name.c_str());
+  return true;
+}
+
 }  // namespace
 
 int main(int argc, char **argv)
 {
-  const int frames = (argc > 1) ? std::atoi(argv[1]) : 1;
+  const bool interactive = argc < 2;
+  const int frames = interactive ? 1 : std::atoi(argv[1]);
   const std::string prefix = (argc > 2) ? argv[2] : "teapot";
   if (frames < 1) {
-    std::fprintf(stderr, "usage: %s [frames] [prefix]\n", argv[0]);
+    std::fprintf(stderr, "usage: %s [frames [prefix]]\n", argv[0]);
     return 2;
   }
 
@@ -134,22 +165,24 @@ int main(int argc, char **argv)
 
   teapot::Scene scene;
   int status = 0;
-  for (int frame = 0; frame < frames; frame++) {
-    scene.draw(30.0f + 360.0f * static_cast<float>(frame) / static_cast<float>(frames),
-               kWidth, kHeight);
-    grBufferSwap(1);
-    grFinish();
-
-    CsimImage image;
-    char number[16];
-    std::snprintf(number, sizeof(number), "%03d", frame);
-    const std::string name = prefix + number + ".png";
-    if (!csimGetSwappedImage(0, &image) || !writePng(name, image)) {
-      std::fprintf(stderr, "could not write %s\n", name.c_str());
-      status = 1;
-      break;
+  drawFrame(scene, kStartAngle);
+  if (interactive && csimWindowIsOpen()) {
+    std::printf("Close the window to quit.\n");
+    const auto start = std::chrono::steady_clock::now();
+    while (csimWindowIsOpen()) {
+      const std::chrono::duration<float> elapsed = std::chrono::steady_clock::now() - start;
+      drawFrame(scene, kStartAngle + kDegreesPerSecond * elapsed.count());
     }
-    std::printf("%s\n", name.c_str());
+  } else {
+    for (int frame = 0; frame < frames; frame++) {
+      if (frame > 0) {
+        drawFrame(scene, kStartAngle + 360.0f * static_cast<float>(frame) / static_cast<float>(frames));
+      }
+      if (!saveFrame(prefix, frame)) {
+        status = 1;
+        break;
+      }
+    }
   }
 
   CsimStats stats;

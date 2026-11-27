@@ -177,4 +177,9 @@ void showImage(const unsigned int *pixels, FxU32 width, FxU32 height)
   InvalidateRect(window->hwnd, nullptr, FALSE);
 }
 
+bool windowIsOpen()
+{
+  return !disabled && (window != nullptr) && !window->closed;
+}
+
 }  // namespace csim

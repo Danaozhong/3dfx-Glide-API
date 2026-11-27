@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "board.hpp"
+#include "display.hpp"
 
 namespace csim {
 namespace {
@@ -223,6 +224,11 @@ int csimGetSwappedImage(unsigned int board, CsimImage *image)
   image->height = b->chip().imageHeight();
   image->pixels = b->chip().imagePixels();
   return 1;
+}
+
+int csimWindowIsOpen(void)
+{
+  return csim::windowIsOpen() ? 1 : 0;
 }
 
 int csimIsBoardMemory(const void *p, unsigned int size)

@@ -30,6 +30,9 @@ namespace csim {
  */
 void showImage(const unsigned int *pixels, FxU32 width, FxU32 height);
 
+/// @brief True from the first showImage until the user closes the window.
+bool windowIsOpen();
+
 /// @brief False if CSIM_WINDOW is 0.
 inline bool windowEnabled()
 {
