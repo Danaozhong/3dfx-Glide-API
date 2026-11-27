@@ -185,9 +185,8 @@ bool displayOpen()
 #endif
 }
 
-void drawFrame(teapot::Scene &scene, float angle)
+void showFrame()
 {
-  scene.draw(angle, kWidth, kHeight);
   grBufferSwap(1);
   grFinish();
 #ifdef _WIN32
@@ -199,7 +198,8 @@ void drawFrame(teapot::Scene &scene, float angle)
 #endif
 }
 
-// Writes the shown frame to <prefix><frame>.png.
+// Writes the drawn frame to <prefix><frame>.png, before it is shown: the
+// simulator does not read the front buffer back.
 bool saveFrame(const std::string &prefix, int frame)
 {
   char number[16];
@@ -208,7 +208,7 @@ bool saveFrame(const std::string &prefix, int frame)
 
   // The color buffers of the window are RGB 565.
   std::vector<FxU16> pixels(static_cast<std::size_t>(kWidth) * kHeight);
-  const bool ok = (grLfbReadRegion(GR_BUFFER_FRONTBUFFER, 0, 0, kWidth, kHeight,
+  const bool ok = (grLfbReadRegion(GR_BUFFER_BACKBUFFER, 0, 0, kWidth, kHeight,
                                    kWidth * sizeof(FxU16), pixels.data()) != FXFALSE) &&
                   writePng(name, pixels);
   if (!ok) {
@@ -257,7 +257,11 @@ int main(int argc, char **argv)
 
   teapot::Scene scene;
   int status = 0;
-  drawFrame(scene, kStartAngle);
+  if (interactive) {
+    // The simulator opens its window at the first swap.
+    scene.draw(kStartAngle, kWidth, kHeight);
+    showFrame();
+  }
   if (interactive && displayOpen()) {
 #ifdef TEAPOT_CSIM
     std::printf("Close the window or press a key to quit.\n");
@@ -269,17 +273,18 @@ int main(int argc, char **argv)
     const auto start = std::chrono::steady_clock::now();
     while (displayOpen() && !keyboard.pressed()) {
       const std::chrono::duration<float> elapsed = std::chrono::steady_clock::now() - start;
-      drawFrame(scene, kStartAngle + kDegreesPerSecond * elapsed.count());
+      scene.draw(kStartAngle + kDegreesPerSecond * elapsed.count(), kWidth, kHeight);
+      showFrame();
     }
   } else {
     for (int frame = 0; frame < frames; frame++) {
-      if (frame > 0) {
-        drawFrame(scene, kStartAngle + 360.0f * static_cast<float>(frame) / static_cast<float>(frames));
-      }
+      scene.draw(kStartAngle + 360.0f * static_cast<float>(frame) / static_cast<float>(frames),
+                 kWidth, kHeight);
       if (!saveFrame(prefix, frame)) {
         status = 1;
         break;
       }
+      showFrame();
     }
   }
 
