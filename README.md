@@ -82,6 +82,20 @@ The Glide API comes in two versions, Glide2x and Glide3x. Both versions have dif
 
 The simplest way to build the libraries is to use the provided docker container, and refer to the build steps of the GitHub Actions.
 
+The CMake project in the repository root builds all libraries, except the sst1 ones, which have no CMake build yet. `GLIDE_LIBRARIES` selects which ones, as a `;`-separated list of:
+* `glide2x_voodoo2` (`glide2x/cvg`)
+* `glide2x_voodoo3` (`glide2x/h3`)
+* `glide3x_voodoo2` (`glide3x/cvg`)
+* `glide3x_voodoo345` (`glide3x/h5`)
+
+By default all of them are built. With `-DBUILD_HAL_CSIM=ON`, `-DUSE_DRI=ON`, or on ARM, only `glide3x_voodoo345` is built, as the others only exist for x86 hardware. For example, to build only the Glide2x libraries:
+```sh
+cmake "-DGLIDE_LIBRARIES=glide2x_voodoo2;glide2x_voodoo3" ..
+```
+`glide2x/cvg`, `glide2x/h3` and `glide3x/cvg` can also be built on their own, from their directories.
+
+The build number of the Glide3x for Voodoo3/4/5 version (`fxbldno.h`) is generated during the configuration, from the `BUILD_NUMBER` environment variable if set, otherwise from the time. Delete old copies of `glide3x/h5/glide3/src/fxbldno.h`, which would be used instead.
+
 
 The struct offset headers `fxgasm.h` and `fxinline.h` are generated automatically during the build, with the same compiler and configuration as the DLL. Do not copy them into the source directories, the build stops if it finds old copies there.
 
@@ -94,14 +108,14 @@ Windows 9x requires a 32-bit MinGW build. The `mingw-w64-x86_32.cmake` toolchain
 
 After linking, the build checks that the DLL does not require a newer Windows version and does not import DLLs that are missing on Windows 9x (e.g. `libgcc_s`, `libwinpthread` or the Universal CRT). This check can be disabled with `-DGLIDE_CHECK_WIN9X=OFF`.
 
-Glide3 for Voodoo3/4/5, from the repository root:
+All libraries, from the repository root:
 ```sh
 mkdir bin_win_x32
 cd bin_win_x32
 cmake -DCMAKE_TOOLCHAIN_FILE=../mingw-w64-x86_32.cmake ..
 cmake --build .
 ```
-The other libraries are built the same way from their directories (e.g. `glide2x/cvg`), using the toolchain file in that directory.
+The DLLs are in the directories of the libraries, e.g. `glide3x/h5/glide3x.dll` and `glide2x/cvg/glide2x.dll`.
 
 `BUILD_32BIT` is detected from the compiler. It only needs to be set for native 32-bit Linux builds (`-DBUILD_32BIT=ON`, which adds `-m32`).
 
@@ -109,33 +123,11 @@ The other libraries are built the same way from their directories (e.g. `glide2x
 
 Let's build the Glide3 DLL for Voodoo3/4/5 using Visual Studio. Note that the DLLs only work on Windows 9x when built with a compiler that still supports it (Visual Studio 2005 or older), current Visual Studio versions cannot target Windows 9x.
 
-#### Run FX Build Number Header Generator
-
-Go to the Glide3 source directory, and create a binary directory.
+From the repository root, generate the Visual Studio solution, and build the DLL. 32-bit builds need [NASM](https://www.nasm.us/).
 ```ps1
-cd glide3x\h5\glide3\src\fxbldno_tool
 mkdir bin_win32
 cd bin_win32
-```
-
-Generate project, build, generate header files... 
-```ps1
-cmake -A Win32 ..
-cmake --build .
-cd ../..
-./fxbldno_tool/bin_win32/Debug/fxbldno > fxbldno.h
-```
-
-#### Generate the Glide3 DLL
-Move back to the repository root, and generate the build directory.
-```ps1
-cd ..\..\..\..
-mkdir bin_win32
-cd bin_win32
-```
-Similar to the steps before, generate your Visual Studio solution, and build the DLL.
-```ps1
-cmake -A Win32 ..
+cmake -A Win32 -DGLIDE_LIBRARIES=glide3x_voodoo345 ..
 cmake --build .
 ```
 The glide3x.dll should be generated in the bin_win32\glide3x\h5\Debug directory, ready for use.

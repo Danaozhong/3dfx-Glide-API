@@ -5,7 +5,7 @@ add_library(csim_teapot_scene STATIC
 )
 target_compile_features(csim_teapot_scene PUBLIC cxx_std_17)
 target_include_directories(csim_teapot_scene PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(csim_teapot_scene PUBLIC ${CMAKE_PROJECT_NAME})
+target_link_libraries(csim_teapot_scene PUBLIC glide3x_voodoo345)
 
 add_executable(csim_teapot main.cpp)
 target_link_libraries(csim_teapot PRIVATE csim_teapot_scene)
@@ -14,6 +14,6 @@ target_link_libraries(csim_teapot PRIVATE csim_teapot_scene)
 if(WIN32)
     add_custom_command(TARGET csim_teapot POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                $<TARGET_FILE:${CMAKE_PROJECT_NAME}> $<TARGET_FILE_DIR:csim_teapot>
+                $<TARGET_FILE:glide3x_voodoo345> $<TARGET_FILE_DIR:csim_teapot>
         VERBATIM)
 endif()

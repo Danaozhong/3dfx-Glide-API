@@ -2,13 +2,39 @@ include(GlideDll)
 include(GlideFxGasm)
 include(GlideWin9x)
 
-set (GLIDE_H5_DIR ${CMAKE_SOURCE_DIR}/glide3x/h5)
+# Only the 32-bit Windows build has assembly sources (win9x.asm), elsewhere
+# NASM is not needed, e.g. on ARM.
+if(WIN32 AND BUILD_32BIT)
+    enable_language(ASM_NASM)
+endif()
+
+set (GLIDE_H5_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 set (CINIT_DIR ${GLIDE_H5_DIR}/cinit)
 
 set (MINIHWC_DIR ${GLIDE_H5_DIR}/minihwc)
 
 set (GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
+
+# The build number of the version (fxbldno.h), as the fxbldno tool of 3dfx
+# made it: BUILD_NUMBER from the environment, otherwise from the time, here
+# the time of the configuration.
+if(DEFINED ENV{BUILD_NUMBER})
+    set(GLIDE_BUILD_NUMBER $ENV{BUILD_NUMBER})
+else()
+    string(TIMESTAMP day "%j")
+    string(TIMESTAMP hour "%H")
+    string(TIMESTAMP minute "%M")
+    math(EXPR GLIDE_BUILD_NUMBER "((${day} - 1) << 7) | (${hour} << 2) | (${minute} / 15)")
+endif()
+configure_file(${GLIDE_H5_DIR}/glide3/src/fxbldno.h.in ${GENERATED_DIR}/fxbldno.h @ONLY)
+# rcver.h includes it with quotes, so an old copy next to it is used instead.
+if(EXISTS ${GLIDE_H5_DIR}/glide3/src/fxbldno.h)
+    message(WARNING
+        "${GLIDE_H5_DIR}/glide3/src/fxbldno.h is left over from the fxbldno tool, and is "
+        "used instead of the generated one. It is now generated in the build directory, "
+        "please delete it.")
+endif()
 
 set(GLIDE_SOURCES 
     ${GLIDE_H5_DIR}/glide3/src/fifo.c
@@ -260,27 +286,27 @@ add_dependencies(glide_objects fxgasm_headers)
 # Create a shared library 
 if(BUILD_HAL_CSIM)
     # Do not mix it up with the library for real hardware.
-    glide_add_dll(${CMAKE_PROJECT_NAME} OBJECTS glide_objects OUTPUT_NAME glide3x_csim)
-    set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME glide3x_csim)
+    glide_add_dll(glide3x_voodoo345 OBJECTS glide_objects OUTPUT_NAME glide3x_csim)
+    set_target_properties(glide3x_voodoo345 PROPERTIES OUTPUT_NAME glide3x_csim)
 else()
-    glide_add_dll(${CMAKE_PROJECT_NAME} OBJECTS glide_objects OUTPUT_NAME glide3x)
+    glide_add_dll(glide3x_voodoo345 OBJECTS glide_objects OUTPUT_NAME glide3x)
 endif()
 
-target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
+target_link_libraries(glide3x_voodoo345 PUBLIC
     glide_config
     pcilib
 )
 if(BUILD_HAL_CSIM)
-    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE csim)
+    target_link_libraries(glide3x_voodoo345 PRIVATE csim)
 endif()
 if(UNIX)
     # exp() and pow() of the fog and gamma tables.
-    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE m)
+    target_link_libraries(glide3x_voodoo345 PRIVATE m)
 endif()
-glide_check_win9x_compatibility(${CMAKE_PROJECT_NAME})
+glide_check_win9x_compatibility(glide3x_voodoo345)
 
 if (${EMBED_TEXUS2})
-    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
+    target_link_libraries(glide3x_voodoo345 PUBLIC
         texus2
     )
 endif()
@@ -295,7 +321,7 @@ endif()
 if(WIN32)
     # Windows build uses DirectDraw to detect possible screen resolutions and prepare
     # the context, therefore we need to link the DirectDraw libs.
-    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
+    target_link_libraries(glide3x_voodoo345 PUBLIC
         dxguid.lib
         ddraw.lib
     )

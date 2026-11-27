@@ -24,19 +24,6 @@ jobs:
       run: |
         mkdir -p ${{ github.workspace }}/artifacts
         
-    - name: Generate Fx Build Number Tool
-      working-directory: "glide3x/h5/glide3/src/"
-      run: |
-        mkdir -p fxbldno_tool/bin
-        cd fxbldno_tool/bin
-        cmake ..
-        cmake --build .
-        
-    - name: Generate Build Number Header Files
-      working-directory: "glide3x/h5/glide3/src/"
-      run: |
-        ./fxbldno_tool/bin/fxbldno  > fxbldno.h
-
     - name: Generate Glide3x Dynamic Link Library (Linux, x64)
       run: |
         mkdir bin_x64

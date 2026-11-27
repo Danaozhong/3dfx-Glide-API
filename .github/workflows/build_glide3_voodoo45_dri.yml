@@ -26,19 +26,6 @@ jobs:
         apt-get update
         DEBIAN_FRONTEND=noninteractive apt-get install -y libx11-dev libxxf86vm-dev
 
-    - name: Generate Fx Build Number Tool
-      working-directory: "glide3x/h5/glide3/src/"
-      run: |
-        mkdir -p fxbldno_tool/bin
-        cd fxbldno_tool/bin
-        cmake ..
-        cmake --build .
-
-    - name: Generate Build Number Header Files
-      working-directory: "glide3x/h5/glide3/src/"
-      run: |
-        ./fxbldno_tool/bin/fxbldno > fxbldno.h
-
     - name: Generate Glide3x Shared Library (DRI, Linux, x64)
       run: |
         mkdir bin_dri

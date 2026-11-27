@@ -4,6 +4,8 @@
 # <object library>.
 #
 # On Windows the DLL is named <OUTPUT_NAME>.dll, the name games load.
+# Elsewhere it is lib<OUTPUT_NAME>.so with the first letter in upper case
+# (libGlide3x.so), independent of the target name.
 #
 # With MinGW, the exports are additionally listed in a generated .def file:
 # the original Glide DLLs are built with MSVC, which exports the __stdcall
@@ -44,5 +46,11 @@ function(glide_add_dll target)
         set_target_properties(${target} PROPERTIES
             PREFIX ""
             OUTPUT_NAME ${ARG_OUTPUT_NAME})
+    else()
+        # libGlide2x.so or libGlide3x.so
+        string(SUBSTRING ${ARG_OUTPUT_NAME} 0 1 first)
+        string(SUBSTRING ${ARG_OUTPUT_NAME} 1 -1 rest)
+        string(TOUPPER ${first} first)
+        set_target_properties(${target} PROPERTIES OUTPUT_NAME ${first}${rest})
     endif()
 endfunction()

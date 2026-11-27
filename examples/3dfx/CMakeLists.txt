@@ -21,7 +21,7 @@ set(GLIDE_3DFX_PROGRAMS
 
 add_library(glide_tlib STATIC tlib.c)
 target_include_directories(glide_tlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(glide_tlib PUBLIC ${CMAKE_PROJECT_NAME})
+target_link_libraries(glide_tlib PUBLIC glide3x_voodoo345)
 if(WIN32)
     # The Glide DLL only exports the Glide API, not fxos.c (timer() for
     # sbench), which the shared library on Linux has as well.
@@ -50,10 +50,10 @@ set(GLIDE_3DFX_COPY
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GLIDE_3DFX_TEXTURES} ${GLIDE_3DFX_DIR})
 if(WIN32)
     list(APPEND GLIDE_3DFX_COPY
-         COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:${CMAKE_PROJECT_NAME}> ${GLIDE_3DFX_DIR})
+         COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:glide3x_voodoo345> ${GLIDE_3DFX_DIR})
 endif()
 add_custom_target(glide_3dfx_data ${GLIDE_3DFX_COPY} VERBATIM)
-add_dependencies(glide_3dfx_data ${CMAKE_PROJECT_NAME})
+add_dependencies(glide_3dfx_data glide3x_voodoo345)
 set_target_properties(glide_3dfx_data PROPERTIES FOLDER examples/3dfx)
 
 foreach(program ${GLIDE_3DFX_PROGRAMS})

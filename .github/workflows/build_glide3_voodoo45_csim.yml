@@ -32,19 +32,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Generate Fx Build Number Tool
-      working-directory: "glide3x/h5/glide3/src/"
-      run: |
-        mkdir -p fxbldno_tool/bin
-        cd fxbldno_tool/bin
-        cmake ..
-        cmake --build .
-
-    - name: Generate Build Number Header Files
-      working-directory: "glide3x/h5/glide3/src/"
-      run: |
-        ./fxbldno_tool/bin/fxbldno  > fxbldno.h
-
     - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Linux, x64)
       run: |
         mkdir bin_csim_x64
@@ -136,19 +123,6 @@ jobs:
     - uses: ilammy/setup-nasm@v1
     - name: Checkout
       uses: actions/checkout@v4
-
-    - name: Generate Fx Build Number Tool
-      working-directory: "glide3x/h5/glide3/src/"
-      run: |
-        mkdir fxbldno_tool/bin
-        cd fxbldno_tool/bin
-        cmake -DCMAKE_GENERATOR_PLATFORM=Win32 ..
-        cmake --build .
-
-    - name: Generate Build Number Header Files
-      working-directory: "glide3x/h5/glide3/src/"
-      run: |
-        ./fxbldno_tool/bin/Debug/fxbldno.exe  > fxbldno.h
 
     - name: Generate Glide3x Dynamic Link Library (HAL_CSIM, Windows, MSVC, ${{ matrix.arch }})
       run: |
