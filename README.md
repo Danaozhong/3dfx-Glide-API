@@ -17,6 +17,7 @@ The [Utah teapot](https://en.wikipedia.org/wiki/Utah_teapot) rendered with the G
 ![win-glide3-voodoo345-gcc-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo45_gcc.yml/badge.svg)
 ![glide3-voodoo45-csim-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo45_csim.yml/badge.svg)
 ![glide3-voodoo45-3dfx-examples](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo45_3dfx_examples.yml/badge.svg)
+![linux-glide3-voodoo45-dri-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo45_dri.yml/badge.svg)
 ![win-glide3-voodoo2-gcc-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide3_voodoo2.yml/badge.svg)
 ![win-glide2-voodoo3-gcc-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide2_voodoo3.yml/badge.svg)
 ![win-glide2-voodoo2-gcc-build](https://github.com/Danaozhong/3dfx-Glide-API/actions/workflows/build_glide2_voodoo2.yml/badge.svg)
@@ -138,6 +139,27 @@ cmake -A Win32 ..
 cmake --build .
 ```
 The glide3x.dll should be generated in the bin_win32\glide3x\h5\Debug directory, ready for use.
+
+### Linux DRI / `tdfx` Build (Obsolete)
+
+Glide3x for Voodoo3/4/5 can be built in two ways on Linux:
+* **Standalone (the default)**: Glide programs the card itself, through `minihwc`. It sets the video mode and accesses the hardware directly, so it needs root rights or the `/dev/3dfx` device, and takes over the screen. This is what Glide games and the examples use.
+* **DRI** (`-DUSE_DRI=ON`): Glide is the backend of Mesa's `tdfx` OpenGL driver (`tdfx_dri.so`), and cannot be used directly by programs. The X server (`xf86-video-tdfx`) and the `tdfx` kernel module own the card. Mesa hands Glide the mapped registers, the frame buffer and the window position through the `grDRI*` functions of `glide3x/h5/minihwc/linhwc.c`, which replaces `minihwc`. This gave OpenGL acceleration on the X desktop, e.g. for Quake 3 on Linux.
+
+The DRI build is obsolete, as all the other parts it needs have been removed from Linux:
+* Mesa removed the `tdfx` driver, and all other DRI1 drivers, in Mesa 8.0 (February 2012). Mesa 7.11 is the last version with it.
+* The `tdfx` kernel module was marked obsolete in 2016, and removed in Linux 6.3 (April 2023).
+
+So it only works on Linux distributions from 2011 or older, which also had the matching X server.
+
+The DRI build needs the X11 headers (`libx11-dev` and `libxxf86vm-dev` on Debian/Ubuntu):
+```sh
+mkdir bin_dri
+cd bin_dri
+cmake -DCMAKE_BUILD_TYPE=Release -DUSE_DRI=ON ..
+cmake --build .
+```
+Mesa's `tdfx_dri.so` loads `libglide3-v5.so` (Voodoo4/5) or `libglide3.so`, so install the built `glide3x/h5/libGlide3x.so` under one of these names. The CI only compiles the DRI build, but i have never tested it with Mesa.
 
 ## Where to Download?
 The libraries are automatically built by the CI for every commit, so you can also use the CI builds (see the "Actions" tab https://github.com/Danaozhong/3dfx-Glide-API/actions for the download link).

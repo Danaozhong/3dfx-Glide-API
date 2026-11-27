@@ -5,8 +5,15 @@ PROJECT(Glide3x VERSION 1.0 DESCRIPTION "Glide3x API for Voodoo3/4/5" LANGUAGES 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(GlideArch)
 
-OPTION(USE_DRI "no idea what DRI mode stands for" OFF)
-OPTION(USE_DGA "no idea what DRI mode stands for" OFF)
+# DRI (Direct Rendering Infrastructure, here the original DRI1) builds Glide3x
+# as the backend of Mesa's tdfx OpenGL driver on Linux. It needs the tdfx DRI
+# driver of Mesa 7.11 or older (removed in Mesa 8.0, 2012) and the tdfx kernel
+# module (removed in Linux 6.3, 2023), so it only works on old distributions.
+# See "Linux DRI Build (Obsolete)" in README.md.
+OPTION(USE_DRI "Build for Linux DRI, as backend of Mesa's tdfx driver (Mesa <= 7.11, Linux < 6.3)" OFF)
+
+
+OPTION(USE_DGA "no idea what DGA mode stands for" OFF)
 OPTION(EMBED_TEXUS2 "Embed Texus2 functions into Glide3" ON)
 OPTION(BUILD_HAL_CSIM
        "Build Glide3x for Voodoo4/5 against the chip simulator (HAL_CSIM) instead of real hardware. Uses the stub in swlibs/csim."

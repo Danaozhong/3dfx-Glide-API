@@ -1,0 +1,68 @@
+name: Build Glide3x for Voodoo4/5 Library (Linux DRI)
+
+# Builds Glide3x with USE_DRI, as the backend of Mesa's tdfx driver. The DRI
+# build is obsolete (see "Linux DRI Build (Obsolete)" in README.md) and cannot
+# be run without Mesa 7.11 and a Voodoo card, so this only checks that it
+# compiles and that the library has no unresolved symbols.
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build_dri:
+    runs-on: ubuntu-latest
+    container:
+      image: 'ghcr.io/danaozhong/3dfx_glide_dev_env_linux_x64:latest'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install the X11 Headers
+      run: |
+        apt-get update
+        DEBIAN_FRONTEND=noninteractive apt-get install -y libx11-dev libxxf86vm-dev
+
+    - name: Generate Fx Build Number Tool
+      working-directory: "glide3x/h5/glide3/src/"
+      run: |
+        mkdir -p fxbldno_tool/bin
+        cd fxbldno_tool/bin
+        cmake ..
+        cmake --build .
+
+    - name: Generate Build Number Header Files
+      working-directory: "glide3x/h5/glide3/src/"
+      run: |
+        ./fxbldno_tool/bin/fxbldno > fxbldno.h
+
+    - name: Generate Glide3x Shared Library (DRI, Linux, x64)
+      run: |
+        mkdir bin_dri
+        cd bin_dri
+        cmake -DCMAKE_BUILD_TYPE=Release -DUSE_DRI=ON ..
+        cmake --build . -j4
+
+    - name: Check the Symbols of the Library
+      working-directory: bin_dri/glide3x/h5
+      run: |
+        # Everything apart from the C library must be resolved within Glide.
+        unresolved=$(nm -D --undefined-only libGlide3x.so | grep -v GLIBC | grep -v ' w ' || true)
+        if [ -n "$unresolved" ]; then
+          echo "Unresolved symbols:"
+          echo "$unresolved"
+          exit 1
+        fi
+        # The entry points that Mesa's tdfx driver calls.
+        for symbol in grDRIOpen grDRIPosition grDRIImportFifo grDRIInvalidateAll grDRIResetSAREA grDRIBufferSwap; do
+          nm -D --defined-only libGlide3x.so | grep -qw "$symbol" || { echo "$symbol is not exported"; exit 1; }
+        done
+
+    - name: Upload the Library
+      uses: actions/upload-artifact@v4
+      with:
+        name: glide3x_h5_dri_linux_x64
+        path: bin_dri/glide3x/h5/libGlide3x.so

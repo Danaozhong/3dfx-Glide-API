@@ -79,7 +79,7 @@ else()
 
     if (${USE_DRI})
         set(GLIDE_OUTSIDE_SOURCES ${GLIDE_OUTSIDE_SOURCES}
-            ${FXMISC_DIR}/linhwc.c
+            ${MINIHWC_DIR}/linhwc.c
             ${FXMISC_DIR}/linutil.c
         )
     else()
@@ -121,7 +121,6 @@ target_compile_definitions(glide_config INTERFACE
     -DGLIDE_PACKET3_TRI_SETUP=1 
     -DGLIDE_TRI_CULLING=1 
     -DUSE_PACKET_FIFO=1
-    -DGLIDE_CHECK_CONTEXT
 
     # subsystem
     -DH3
@@ -197,7 +196,21 @@ else()
     target_compile_definitions(glide_config INTERFACE
         -D__linux__
     )
+    if (${USE_DRI})
+        # linhwc.c talks to the tdfx kernel module and the X server through
+        # the DRI, instead of programming the hardware itself (minihwc).
+        target_compile_definitions(glide_config INTERFACE
+            -DDRI_BUILD
+        )
+    endif()
+endif()
 
+# Checks whether the display driver took the context away (hwcShareContextData
+# of minihwc), which the DRI build does not have.
+if (NOT ${USE_DRI})
+    target_compile_definitions(glide_config INTERFACE
+        -DGLIDE_CHECK_CONTEXT
+    )
 endif()
 
 
@@ -259,6 +272,10 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
 )
 if(BUILD_HAL_CSIM)
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE csim)
+endif()
+if(UNIX)
+    # exp() and pow() of the fog and gamma tables.
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE m)
 endif()
 glide_check_win9x_compatibility(${CMAKE_PROJECT_NAME})
 
