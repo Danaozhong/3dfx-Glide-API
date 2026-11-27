@@ -60,7 +60,7 @@ jobs:
     - name: Render the Teapot Example (HAL_CSIM, Linux, x64)
       working-directory: bin_csim_x64
       run: |
-        ./examples/csim_teapot/csim_teapot 1 csim_teapot_${{ matrix.build_type }}_
+        ./examples/teapot/teapot 1 csim_teapot_${{ matrix.build_type }}_
 
     - name: Upload the Rendered Teapot
       id: teapot

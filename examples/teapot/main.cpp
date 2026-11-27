@@ -1,12 +1,13 @@
-// Renders the Utah teapot with Glide on the simulated Voodoo4/5 board of the
-// HAL_CSIM build (swlibs/csim).
+// Renders the Utah teapot with Glide3x on a Voodoo3/4/5, or on the simulated
+// Voodoo4/5 board of the HAL_CSIM build (swlibs/csim).
 //
-//   csim_teapot
+//   teapot
 //
-// Turns the teapot in the window of the simulator until the window is closed.
-// Without a window (no Qt, or CSIM_WINDOW=0), writes teapot000.png instead.
+// Turns the teapot until a key is pressed in the console (on Windows, also
+// Esc), on the simulator also until its window is closed. On the simulator
+// without a window (no Qt, or CSIM_WINDOW=0), writes teapot000.png instead.
 //
-//   csim_teapot frames [prefix]
+//   teapot frames [prefix]
 //
 // Writes <prefix>000.png, <prefix>001.png, ... (default prefix "teapot"),
 // with the teapot turning a full circle over the frames.
@@ -21,12 +22,21 @@
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
+#include <conio.h>
 #include <windows.h>
+#else
+#include <sys/select.h>
+#include <termios.h>
+#include <unistd.h>
 #endif
 
 #include <glide.h>
+#ifdef TEAPOT_CSIM
 #include <csimstats.h>
+#endif
 
 #include "scene.hpp"
 
@@ -61,17 +71,18 @@ void chunk(std::vector<unsigned char> &out, const char *type, const std::vector<
   put32(out, crc32(body.data(), body.size()));
 }
 
-// An RGB PNG, with uncompressed deflate blocks.
-bool writePng(const std::string &name, const CsimImage &image)
+// An RGB PNG of RGB565 pixels, with uncompressed deflate blocks.
+bool writePng(const std::string &name, const std::vector<FxU16> &pixels)
 {
   std::vector<unsigned char> raw;
-  for (unsigned int y = 0; y < image.height; y++) {
+  for (int y = 0; y < kHeight; y++) {
     raw.push_back(0);  // no filter
-    for (unsigned int x = 0; x < image.width; x++) {
-      const unsigned int argb = image.pixels[y * image.width + x];
-      raw.push_back(static_cast<unsigned char>(argb >> 16));
-      raw.push_back(static_cast<unsigned char>(argb >> 8));
-      raw.push_back(static_cast<unsigned char>(argb));
+    for (int x = 0; x < kWidth; x++) {
+      const unsigned int p = pixels[static_cast<std::size_t>(y) * kWidth + x];
+      const unsigned int r = (p >> 11) & 0x1F, g = (p >> 5) & 0x3F, b = p & 0x1F;
+      raw.push_back(static_cast<unsigned char>((r << 3) | (r >> 2)));
+      raw.push_back(static_cast<unsigned char>((g << 2) | (g >> 4)));
+      raw.push_back(static_cast<unsigned char>((b << 3) | (b >> 2)));
     }
   }
 
@@ -96,8 +107,8 @@ bool writePng(const std::string &name, const CsimImage &image)
   put32(zlib, (b << 16) | a);
 
   std::vector<unsigned char> header;
-  put32(header, image.width);
-  put32(header, image.height);
+  put32(header, kWidth);
+  put32(header, kHeight);
   header.insert(header.end(), {8, 2, 0, 0, 0});  // 8-bit RGB
 
   std::vector<unsigned char> png = {0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
@@ -111,21 +122,96 @@ bool writePng(const std::string &name, const CsimImage &image)
   return (std::fclose(file) == 0) && ok;
 }
 
+// The keys typed into the console, without waiting for Enter.
+class Keyboard {
+public:
+  Keyboard()
+  {
+#ifndef _WIN32
+    if (isatty(STDIN_FILENO) && (tcgetattr(STDIN_FILENO, &saved_) == 0)) {
+      termios unbuffered = saved_;
+      unbuffered.c_lflag &= ~ICANON;
+      tcsetattr(STDIN_FILENO, TCSANOW, &unbuffered);
+      console_ = true;
+    }
+#endif
+  }
+
+  ~Keyboard()
+  {
+#ifndef _WIN32
+    if (console_) tcsetattr(STDIN_FILENO, TCSANOW, &saved_);
+#endif
+  }
+
+  Keyboard(const Keyboard &) = delete;
+  Keyboard &operator=(const Keyboard &) = delete;
+
+  bool pressed()
+  {
+#ifdef _WIN32
+    // On hardware, the window of the program has the focus, not the console.
+    if (_kbhit()) {
+      _getch();
+      return true;
+    }
+    return (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0;
+#else
+    if (!console_) return false;
+    fd_set keys;
+    FD_ZERO(&keys);
+    FD_SET(STDIN_FILENO, &keys);
+    timeval noWait = {0, 0};
+    if (select(STDIN_FILENO + 1, &keys, nullptr, nullptr, &noWait) <= 0) return false;
+    char key;
+    return read(STDIN_FILENO, &key, 1) == 1;
+#endif
+  }
+
+private:
+#ifndef _WIN32
+  termios saved_ = {};
+  bool console_ = false;
+#endif
+};
+
+// False once the frames cannot be seen any more.
+bool displayOpen()
+{
+#ifdef TEAPOT_CSIM
+  return csimWindowIsOpen() != 0;
+#else
+  return true;  // the monitor of the board
+#endif
+}
+
 void drawFrame(teapot::Scene &scene, float angle)
 {
   scene.draw(angle, kWidth, kHeight);
   grBufferSwap(1);
   grFinish();
+#ifdef _WIN32
+  MSG msg;
+  while (PeekMessageA(&msg, NULL, 0, 0, PM_REMOVE)) {
+    TranslateMessage(&msg);
+    DispatchMessageA(&msg);
+  }
+#endif
 }
 
-// Writes the last swapped image to <prefix><frame>.png.
+// Writes the shown frame to <prefix><frame>.png.
 bool saveFrame(const std::string &prefix, int frame)
 {
-  CsimImage image;
   char number[16];
   std::snprintf(number, sizeof(number), "%03d", frame);
   const std::string name = prefix + number + ".png";
-  if (!csimGetSwappedImage(0, &image) || !writePng(name, image)) {
+
+  // The color buffers of the window are RGB 565.
+  std::vector<FxU16> pixels(static_cast<std::size_t>(kWidth) * kHeight);
+  const bool ok = (grLfbReadRegion(GR_BUFFER_FRONTBUFFER, 0, 0, kWidth, kHeight,
+                                   kWidth * sizeof(FxU16), pixels.data()) != FXFALSE) &&
+                  writePng(name, pixels);
+  if (!ok) {
     std::fprintf(stderr, "could not write %s\n", name.c_str());
     return false;
   }
@@ -147,9 +233,15 @@ int main(int argc, char **argv)
 
   FxU32 window = 0;
 #ifdef _WIN32
-  // grSstWinOpen needs a window on Windows, it is never shown.
-  HWND hwnd = CreateWindowExA(0, "STATIC", "csim_teapot", WS_POPUP, 0, 0, kWidth, kHeight, NULL,
-                              NULL, GetModuleHandleA(NULL), NULL);
+  // grSstWinOpen needs a window on Windows. On the simulator, it is never
+  // shown; on a Voodoo, it is the full screen window that has the focus.
+#ifdef TEAPOT_CSIM
+  const DWORD style = WS_POPUP;
+#else
+  const DWORD style = WS_POPUP | WS_VISIBLE;
+#endif
+  HWND hwnd = CreateWindowExA(0, "STATIC", "teapot", style, 0, 0, kWidth, kHeight, NULL, NULL,
+                              GetModuleHandleA(NULL), NULL);
   window = static_cast<FxU32>(reinterpret_cast<std::uintptr_t>(hwnd));
 #endif
 
@@ -166,10 +258,16 @@ int main(int argc, char **argv)
   teapot::Scene scene;
   int status = 0;
   drawFrame(scene, kStartAngle);
-  if (interactive && csimWindowIsOpen()) {
-    std::printf("Close the window to quit.\n");
+  if (interactive && displayOpen()) {
+#ifdef TEAPOT_CSIM
+    std::printf("Close the window or press a key to quit.\n");
+#else
+    std::printf("Press a key to quit.\n");
+#endif
+    std::fflush(stdout);
+    Keyboard keyboard;
     const auto start = std::chrono::steady_clock::now();
-    while (csimWindowIsOpen()) {
+    while (displayOpen() && !keyboard.pressed()) {
       const std::chrono::duration<float> elapsed = std::chrono::steady_clock::now() - start;
       drawFrame(scene, kStartAngle + kDegreesPerSecond * elapsed.count());
     }
@@ -185,12 +283,14 @@ int main(int argc, char **argv)
     }
   }
 
+#ifdef TEAPOT_CSIM
   CsimStats stats;
   csimGetStats(&stats);
   if (stats.unsimulated != 0) {
     std::fprintf(stderr, "warning: %u commands or pixels needed unsimulated features\n",
                  stats.unsimulated);
   }
+#endif
 
   grSstWinClose(context);
   grGlideShutdown();
