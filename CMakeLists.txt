@@ -88,9 +88,7 @@ add_subdirectory(common)
 add_subdirectory(swlibs)
 add_subdirectory(glide3x)
 
-if(BUILD_HAL_CSIM OR GLIDE_BUILD_3DFX_EXAMPLES)
-    add_subdirectory(examples)
-endif()
+add_subdirectory(examples)
 
 if(GLIDE_BUILD_TESTS)
     add_subdirectory(tests)

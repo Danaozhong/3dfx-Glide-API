@@ -76,6 +76,8 @@ ImageWindow *open(QSize size)
   return window;
 }
 
+ImageWindow *window = nullptr;
+
 }  // namespace
 
 void showImage(const unsigned int *pixels, FxU32 width, FxU32 height)
@@ -86,11 +88,16 @@ void showImage(const unsigned int *pixels, FxU32 width, FxU32 height)
   const QImage image = QImage(reinterpret_cast<const uchar *>(pixels), static_cast<int>(width),
                               static_cast<int>(height), QImage::Format_RGB32)
                            .copy();
-  static ImageWindow *window = open(image.size());
+  if (window == nullptr) window = open(image.size());
   if (!window->isVisible()) return;  // closed
 
   window->setImage(image);
   QCoreApplication::processEvents();
+}
+
+bool windowIsOpen()
+{
+  return (window != nullptr) && window->isVisible();
 }
 
 }  // namespace csim

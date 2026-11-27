@@ -1,13 +1,14 @@
-# Example programs of Glide3x for Voodoo4/5.
+# Example programs of Glide3x for Voodoo3/4/5.
 #
-#   csim_teapot/  The Utah teapot, Gouraud shaded and depth buffered. Renders
-#                 on the simulated board (swlibs/csim) and saves the frames
-#                 as images, only built with BUILD_HAL_CSIM.
-#   3dfx/         The test programs of the 3dfx Glide3 SDK, built with
-#                 GLIDE_BUILD_3DFX_EXAMPLES.
+#   teapot/  The Utah teapot, Gouraud shaded and depth buffered. Runs on a
+#            Voodoo3/4/5 or on the simulated board (BUILD_HAL_CSIM), and can
+#            save the frames as images. Not built for DRI, where Glide is the
+#            backend of Mesa.
+#   3dfx/    The test programs of the 3dfx Glide3 SDK, built with
+#            GLIDE_BUILD_3DFX_EXAMPLES.
 
-if(BUILD_HAL_CSIM)
-    add_subdirectory(csim_teapot)
+if(NOT USE_DRI)
+    add_subdirectory(teapot)
 endif()
 
 if(GLIDE_BUILD_3DFX_EXAMPLES)

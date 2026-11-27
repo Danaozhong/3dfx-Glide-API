@@ -406,7 +406,7 @@ TEST_F(GlideCsim, DrawsGouraudShadedTriangles)
   EXPECT_NEAR(blue(mixed), 64.0, 8.0);
 }
 
-// The scene of examples/csim_teapot: depth buffered triangle strips.
+// The scene of examples/teapot: depth buffered triangle strips.
 TEST_F(GlideCsim, DrawsTheUtahTeapot)
 {
   ASSERT_NO_FATAL_FAILURE(openWindow());

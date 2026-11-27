@@ -58,7 +58,7 @@ jobs:
       env:
         CSIM_WINDOW: "0"
       run: |
-        ./examples/csim_teapot/csim_teapot 1 csim_teapot_macos_
+        ./examples/teapot/teapot 1 csim_teapot_macos_
 
     - name: Upload the Rendered Teapot
       uses: actions/upload-artifact@v4

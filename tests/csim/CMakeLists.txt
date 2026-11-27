@@ -7,5 +7,5 @@
 
 glide_add_gtest(csim_smoke_test
     SOURCES csim_smoke_test.cpp
-    LIBRARIES ${CMAKE_PROJECT_NAME} csim_teapot_scene
+    LIBRARIES ${CMAKE_PROJECT_NAME} teapot_scene
 )

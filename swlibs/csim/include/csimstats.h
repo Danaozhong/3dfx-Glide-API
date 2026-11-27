@@ -62,6 +62,15 @@ typedef struct CsimImage_s {
 CSIM_API int csimGetSwappedImage(unsigned int board, CsimImage *image);
 
 /**
+** @brief Whether the window that shows the swapped images is open.
+**
+** It opens at the first swap, if the build has a window and CSIM_WINDOW is
+** not 0, and stays open until the user closes it.
+** @return Nonzero while it is open.
+*/
+CSIM_API int csimWindowIsOpen(void);
+
+/**
 ** @brief Checks that the @p size bytes at @p p are memory of a board, e.g. a
 ** pointer that Glide hands out to the application.
 ** @param[in] p The start of the memory.
