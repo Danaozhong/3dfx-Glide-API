@@ -757,11 +757,18 @@ GR_DIENTRY(grGet, FxU32, (FxU32 pname, FxU32 plength, FxI32 *params))
     break;
   case GR_VIDEO_POSITION:
 #if defined(GLIDE3) && defined(GLIDE3_ALPHA)
-    if (plength == 8) {
-      *params = 
-      *(params + 1) = 0;
+    /* The vertical position, and with plength 8 the horizontal one, which
+     * Napalm does not have. Programs wait for the vertical retrace with it. */
+    if ((plength == 4) || (plength == 8)) {
+      GR_DCL_GC;
 
-      retVal = plength;
+      if ((gc != NULL) && (gc->ioRegs != NULL)) {
+        *params = (FxI32)((GET(gc->ioRegs->vidCurrentLine) & SST_VIDEO_CURRENT_LINE)
+                          >> SST_VIDEO_CURRENT_LINE_SHIFT);
+        if (plength == 8) *(params + 1) = 0;
+
+        retVal = plength;
+      }
     }
 #endif
   break;
