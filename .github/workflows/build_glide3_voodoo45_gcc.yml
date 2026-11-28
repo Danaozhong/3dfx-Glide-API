@@ -15,6 +15,9 @@ jobs:
         build_type: [Debug, Release]
     container:
       image: 'ghcr.io/danaozhong/3dfx_glide_dev_env_linux_x64:latest'
+      # The seccomp profile of the runner's Docker denies the socket calls of
+      # the 32-bit wineserver (ENOSYS).
+      options: --security-opt seccomp=unconfined
     
     steps:
     - name: Checkout
@@ -68,7 +71,7 @@ jobs:
       run: |
         mkdir bin_win_x32
         cd bin_win_x32
-        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_32.cmake -DBUILD_32BIT=ON -DCMAKE_INSTALL_PREFIX=../prefix-32 ..
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_32.cmake -DBUILD_32BIT=ON -DCMAKE_INSTALL_PREFIX=../prefix-32 -DGLIDE_BUILD_TESTS=ON -DCMAKE_CROSSCOMPILING_EMULATOR=wine ..
         cmake --build .
 
     - name: Show PE Headers and Imports of Glide3x DLL (Windows, x32)
@@ -76,6 +79,24 @@ jobs:
         for dll in bin_win_x32/glide3x/h5/*.dll; do
           i686-w64-mingw32-objdump -p "$dll"
         done
+
+    # The 32-bit Windows code reads the thread environment block directly,
+    # e.g. the TLS slot of the Glide context. Wine has the same layout.
+    - name: Install Wine
+      run: |
+        dpkg --add-architecture i386
+        apt-get update -y
+        apt-get install -y --no-install-recommends wine wine32:i386
+
+    - name: Test Glide3x (Windows, x32, Wine)
+      working-directory: bin_win_x32
+      env:
+        WINEDEBUG: -all
+        # The container runs as root, but HOME is owned by the runner user,
+        # where Wine refuses to create its prefix.
+        WINEPREFIX: /tmp/wine
+      run: |
+        ctest --output-on-failure
 
         
     - name: Upload Built Glide3x Library

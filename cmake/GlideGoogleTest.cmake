@@ -57,9 +57,14 @@ function(glide_add_gtest target)
     # swlibs/csim) would only slow them down.
     # Listing the tests at test time, not after the build, also allows to
     # build the tests when cross compiling.
+    # Listing the tests through CMAKE_CROSSCOMPILING_EMULATOR (e.g. Wine) can
+    # take longer than the default of 5 seconds, Wine sets up its prefix on
+    # the first start.
     if(CMAKE_VERSION VERSION_LESS 3.18)
-        gtest_discover_tests(${target} PROPERTIES TIMEOUT 60 ENVIRONMENT CSIM_WINDOW=0)
+        gtest_discover_tests(${target} DISCOVERY_TIMEOUT 120
+                             PROPERTIES TIMEOUT 60 ENVIRONMENT CSIM_WINDOW=0)
     else()
-        gtest_discover_tests(${target} DISCOVERY_MODE PRE_TEST PROPERTIES TIMEOUT 60 ENVIRONMENT CSIM_WINDOW=0)
+        gtest_discover_tests(${target} DISCOVERY_MODE PRE_TEST DISCOVERY_TIMEOUT 120
+                             PROPERTIES TIMEOUT 60 ENVIRONMENT CSIM_WINDOW=0)
     endif()
 endfunction()

@@ -7,9 +7,9 @@ The code has been ported to CMake and works on all major modern platforms (Linux
 The source is licensed under 3DFX GLIDE Source Code General Public License.
 
 
-![Utah teapot rendered on the chip simulator](docs/teapot_sample_render.png)
+![Running the Glide Lib built by the CI on Win98](docs/win98_running_glide_lib_built_by_ci.jpeg)
 
-The [Utah teapot](https://en.wikipedia.org/wiki/Utah_teapot) rendered with the Glide3 API from this repository on a 3dfx Napalm (VSA-100) chip simulator.
+The 32-bit Glide library built by the CI (using MinGW and GCC 13) running on Win98.
 
 
 ## CI Status
@@ -29,15 +29,24 @@ A part of these enthusiasts focus on providing software for modern-day operating
 
 The Glide API is, similar to OpenGL/Direct3D, a 3D API. It is used by many old-school video games, and in order to run these games on present-day OS, the Glide API libraries need to be available.
 
-This project is a port of the Open-Source Linux Glide libraries, and supports cross-platform builds for Linux and Windows, both x86 and x64.
+This project is a port of the Open-Source Linux Glide libraries to CMake to make cross-platform builds possible, and get rid of a large set of hard-to-use makefiles.
 
-The toolchain is ported to CMake to simplify cross-platform builds, and get rid of a large set of hard-to-use makefiles.
+The library supports builds for the following platforms:
+- Windows 9x/2000/XP 32-bit
+- Windows 64-bit. It's pretty useless, since there is no 3dfx kernel driver, but you can run the chip simulator (see below) with it.
+- Linux legacy DRI/`tdfx` - useful if you run an old Linux and want to use Mesa3D
+- Modern Linux x86/x64. You can use a 3dfx video card if you enable direct hardware access.
+- macOS. 3dfx cards are not supported by the Apple architecture, but you can run the chip simulator.
 
 
 ## `CSIM` - The Chip Simulator
 
+![Utah teapot rendered on the chip simulator](docs/teapot_sample_render.png)
+
+The [Utah teapot](https://en.wikipedia.org/wiki/Utah_teapot) rendered with the Glide3 API from this repository on a 3dfx Napalm (VSA-100) chip simulator.
 
 > The process of driver development and testing with the CSIM will allow significant portions of the hardware design and driver implementation to be verified well before chips come back. The act of writing the driver should flesh out any problems with the software interface to the chip. [...]
+
 (quote of the 3dfx engineers)
 
 3dfx engineers initially used a software implementation (`CSIM`) of the Napalm chip to test driver development. Although leaked, the source code of this simulator is proprietary. However, it gives us insights into how the Napalm chip behaves internally: how the command FIFO takes the commands from the driver, how the registers are mapped, and more. This knowledge was used to re-implement the chip simulator in C++ (`swlibs/csim`).
@@ -46,13 +55,13 @@ The toolchain is ported to CMake to simplify cross-platform builds, and get rid 
 
 The simulator allows developing and testing the Glide API even for systems where 3dfx hardware is not available. It can be used on all major platforms (Windows, Linux and macOS).
 
-The current implementation is still very basic and only supports triangle rendering and a limited featureset of one TMU. Geometry transformation and lighting are calculated on the CPU, just like in real Glide games of the time.
+The current implementation is still very basic and only supports triangle rendering and a limited feature set of one TMU. Geometry transformation and lighting are calculated on the CPU, just like in real Glide games of the time.
 
 The chip simulator displays the rendering output in a separate window. On Windows, it uses the Win32 API, on Linux and macOS it uses Qt. The window can be turned off for unit or CI tests using a CMake switch.
 
 The chip simulator is not a Glide emulator: it does not wrap the Glide calls to a different rendering API such as OpenGL. Instead, this simulator sits one level lower and simulates the 3dfx chip itself. The Glide API works exactly as it does with a real 3dfx video card. The chip simulator pretends to be a 3dfx device (`0x121A`), and is then initialized by the Glide API.
 
-The simulator is very slow, but speed was not the goal. Instead, `CSIM` was developed to replicate the real 3dfx hardware as accurate as possible. Although not implemented yet, it will include all the original features and quirks, such as T-Buffer effects, RGSS anti-aliasing, and SLI artifacts.
+The simulator is very slow, but speed was not the goal. Instead, `CSIM` was developed to replicate the real 3dfx hardware as accurately as possible. Although not implemented yet, it will include all the original features and quirks, such as T-Buffer effects, RGSS anti-aliasing, and SLI artifacts.
 
 ### The 3dfx SDK Examples
 `examples/3dfx` contains the original test programs of the 3dfx Glide3 SDK (`test00` to `test49`, `sbench` and `display`), each showing one Glide feature. They are built with `-DGLIDE_BUILD_3DFX_EXAMPLES=ON`. With `-DBUILD_HAL_CSIM=ON`, they run on the chip simulator.
@@ -87,7 +96,7 @@ The struct offset headers `fxgasm.h` and `fxinline.h` are generated automaticall
 
 ### Build Example (Windows 98, MinGW cross compile)
 
-Windows 9x requires a 32-bit MinGW build. The `mingw-w64-x86_32.cmake` toolchain files set up everything needed for it:
+Windows 9x requires a 32-bit MinGW build. The `mingw-w64-x86_32.cmake` toolchain file sets up everything needed for it:
 * code is generated for Pentium CPUs (override with `-DGLIDE_TARGET_CPU=...`),
 * the DLL is marked as compatible with Windows 4.0,
 * libgcc is linked statically.
@@ -159,8 +168,12 @@ cd bin_dri
 cmake -DCMAKE_BUILD_TYPE=Release -DUSE_DRI=ON ..
 cmake --build .
 ```
-Mesa's `tdfx_dri.so` loads `libglide3-v5.so` (Voodoo4/5) or `libglide3.so`, so install the built `glide3x/h5/libGlide3x.so` under one of these names. The CI only compiles the DRI build, but i have never tested it with Mesa.
+Mesa's `tdfx_dri.so` loads `libglide3-v5.so` (Voodoo4/5) or `libglide3.so`, so install the built `glide3x/h5/libGlide3x.so` under one of these names. The CI only compiles the DRI build, but I have never tested it with Mesa.
 
 ## Where to Download?
 The libraries are automatically built by the CI for every commit, so you can also use the CI builds (see the "Actions" tab https://github.com/Danaozhong/3dfx-Glide-API/actions for the download link).
 
+## Gratitude
+
+This project would not be possible without MinGW, which still supports 32-bit compilation for Pentium. Thank you so, so, so much for your amazing work!
+Your work helps keep the 3dfx community alive. When you visit Japan, please let me know, so that I can treat you to a drink of your choice!
