@@ -89,6 +89,9 @@ jobs:
       working-directory: bin_win_x32
       env:
         WINEDEBUG: -all
+        # The container runs as root, but HOME is owned by the runner user,
+        # where Wine refuses to create its prefix.
+        WINEPREFIX: /tmp/wine
       run: |
         ctest --output-on-failure
 
