@@ -150,6 +150,12 @@ std::optional<FxU32> Board::specialRead(FxU32 offset) const
     return kIdleStatus;
   }
 
+  if (offset == SST_IO_OFFSET + offsetof(SstIORegs, vidCurrentLine)) {
+    // There is no video timing, the beam moves one line per read, through
+    // all values of the register, so that every wait for a line ends.
+    return (currentLine_++ << SST_VIDEO_CURRENT_LINE_SHIFT) & SST_VIDEO_CURRENT_LINE;
+  }
+
   if (offset == SST_CMDAGP_OFFSET + offsetof(SstCRegs, cmdFifo0.readPtrL)) {
     return chip_.fifoReadPtr();
   }

@@ -85,8 +85,8 @@ public:
 
   /**
    * @brief Value of a 32-bit read, if it does not simply return memory: the
-   * chip is always idle, and the command FIFO is consumed as soon as it is
-   * written.
+   * chip is always idle, the command FIFO is consumed as soon as it is
+   * written, and the video beam (vidCurrentLine) moves with every read.
    * @param[in] offset Offset of the read in the address space.
    */
   std::optional<FxU32> specialRead(FxU32 offset) const;
@@ -103,6 +103,7 @@ private:
   Chip chip_;
   FxU32 fifoStart_ = 0;  ///< Command FIFO, frame buffer offset.
   FxU32 fifoSize_ = 0;   ///< Command FIFO size in bytes. 0 means not configured.
+  mutable FxU32 currentLine_ = 0;  ///< Next value of vidCurrentLine.
 };
 
 }  // namespace csim

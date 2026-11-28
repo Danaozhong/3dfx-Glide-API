@@ -307,6 +307,22 @@ TEST_F(GlideCsim, OpensWindowAndSetsUpCommandFifo)
   EXPECT_EQ(getStats().fifoInits, before.fifoInits + 1);
 }
 
+// Programs wait for the vertical retrace with the video position, the beam
+// has to move.
+TEST_F(GlideCsim, ReportsTheMovingVideoPosition)
+{
+  ASSERT_NO_FATAL_FAILURE(openWindow());
+
+  FxI32 line = -1;
+  ASSERT_EQ(grGet(GR_VIDEO_POSITION, sizeof(line), &line), sizeof(line));
+  EXPECT_GE(line, 0);
+
+  FxI32 position[2] = {-1, -1};
+  ASSERT_EQ(grGet(GR_VIDEO_POSITION, sizeof(position), position), sizeof(position));
+  EXPECT_NE(position[0], line);
+  EXPECT_EQ(position[1], 0);
+}
+
 TEST_F(GlideCsim, DrawsFramesThroughTheCommandFifo)
 {
   // Enough data for the 128kB command FIFO to wrap around several times.

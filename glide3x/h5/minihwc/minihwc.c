@@ -4322,8 +4322,11 @@ hwcInitVideo(hwcBoardInfo *bInfo, FxBool tiled, FxVideoTimingInfo *vidTiming,
          return FXFALSE;        
    }
 
+   /* The fetch size field has 13 bits. Bit 13 of the line size, needed from
+    * 2048 pixels at 32 bpp, is in vidDesktopOverlayStride, see below. */
    HWC_IO_STORE(bInfo->regInfo, vidOverlayDudxOffsetSrcWidth,
-                ((bInfo->vidInfo.xRes << pixelShift) << 19));
+                (((bInfo->vidInfo.xRes << pixelShift) << SST_OVERLAY_FETCH_SIZE_SHIFT) &
+                 SST_OVERLAY_FETCH_SIZE));
 
    /* Video pixel buffer threshold */
    {
@@ -4679,7 +4682,9 @@ hwcInitVideo(hwcBoardInfo *bInfo, FxBool tiled, FxVideoTimingInfo *vidTiming,
 
   HWC_IO_STORE( bInfo->regInfo, vidDesktopOverlayStride,
                 ( bInfo->buffInfo.bufStrideInTiles << 16 ) |
-                  bInfo->buffInfo.bufStrideInTiles );
+                  bInfo->buffInfo.bufStrideInTiles |
+                ( ( ( bInfo->vidInfo.xRes << pixelShift ) & SST_OVERLAY_OVERFLOW_DUDX_BIT )
+                  << SST_OVERLAY_OVERFLOW_RELATIVE_SHIFT ) );
 
   /* initialize pci registers */
 #ifdef FX_GLIDE_NAPALM
@@ -6875,6 +6880,41 @@ FxU32 gss_red[256], gss_green[256], gss_blue[256], gss_red_shifted[256];
 FxU32 _gss_red[256], _gss_green[256], _gss_blue[256], _gss_red_shifted[256];
 #endif
 
+/* The screen shot runs every color through the gamma table. It is only set
+ * when the application sets or reads the gamma ramp, many do neither. */
+static FxBool gssTablesValid = FXFALSE;
+
+static void gssSetTables(FxU32 nEntries, const FxU32 *r, const FxU32 *g, const FxU32 *b)
+{
+  FxU32 i;
+
+  if (nEntries > 256) nEntries = 256;
+
+  for (i = 0; i < nEntries; i++) {
+    gss_red[i]         = r[i] & 0xFF;
+    gss_green[i]       = g[i] & 0xFF;
+    gss_blue[i]        = b[i] & 0xFF;
+    gss_red_shifted[i] = gss_red[i] << 16;
+  }
+  gssTablesValid = FXTRUE;
+}
+
+/* Sets the gamma table to the ramp of the DAC, if nobody set it yet. */
+static void gssInitTables(hwcBoardInfo *bInfo)
+{
+  FxU32 i, r[256], g[256], b[256];
+
+  if (gssTablesValid) return;
+
+  /* hwcGetGammaTable returns these tables for 4x and 8x FSAA on a Voodoo5
+   * 6000, and they stay if the DAC cannot be read. */
+  for (i = 0; i < 256; i++) r[i] = i;
+  gssSetTables(256, r, r, r);
+
+  if (hwcGetGammaTable(bInfo, 256, r, g, b))
+    gssSetTables(256, r, g, b);
+}
+
 static void hwcCopyBuffer8888Flipped(hwcBoardInfo *bInfo, FxU16 *source, int w, int h, FxU8 *dst, int aaShift)
 {
   FxU16 *src = source + w*4*(h-1);
@@ -7582,10 +7622,12 @@ void hwcAAScreenShot(hwcBoardInfo *bInfo, FxU32 colBufNum, FxBool dither)
   
   FxU16 *buffer;
   FxU8 *out;
+  FxU32 pixel, numPixels = bInfo->vidInfo.xRes * bInfo->vidInfo.yRes;
   
   /* Allocate buffer to store frame into... */
   
   dither = FXTRUE;
+  gssInitTables(bInfo);
   buffer = _aligned_malloc(bInfo->vidInfo.xRes * bInfo->vidInfo.yRes * 8, 8);
   
   if(!buffer) return;
@@ -7610,6 +7652,11 @@ void hwcAAScreenShot(hwcBoardInfo *bInfo, FxU32 colBufNum, FxBool dither)
     {
       hwcCopyBuffer8888Flipped(bInfo, buffer, bInfo->vidInfo.xRes, bInfo->vidInfo.yRes, out, 0);
     }
+
+  /* The 16 bpp formats have no alpha, and the alpha of 32 bpp is whatever the
+   * application left in the buffer, usually 0. The screen is opaque. */
+  for (pixel = 0; pixel < numPixels; pixel++)
+    out[pixel * 4 + 3] = 0xFF;
     
   /* Write buffer to disk */
 #ifdef _WIN32
@@ -7624,11 +7671,12 @@ void hwcAAScreenShot(hwcBoardInfo *bInfo, FxU32 colBufNum, FxBool dither)
   header[13] = (FxU8)(bInfo->vidInfo.xRes >> 8);
   header[14] = (FxU8)(bInfo->vidInfo.yRes & 255);
   header[15] = (FxU8)(bInfo->vidInfo.yRes >> 8);
-  header[16] =	32;  /* bytes per pixel */
+  header[16] = 32;  /* bits per pixel */
+  header[17] = 8;   /* alpha bits, origin lower left */
   
   if ((file = fopen(fileName,"wb")) != NULL) {
     fwrite(header,18,1,file);
-    fwrite(out,bInfo->vidInfo.xRes * bInfo->vidInfo.yRes * 4, 1, file);
+    fwrite(out, numPixels * 4, 1, file);
     fclose(file);
   }
   
@@ -8300,12 +8348,9 @@ hwcGammaTable(hwcBoardInfo *bInfo, FxU32 nEntries, FxU32 *r, FxU32 *g, FxU32 *b)
       ((r[i] & 0xff) << RED_SHIFT) |
       ((g[i] & 0xff) << GREEN_SHIFT) |  
       ((b[i] & 0xff) << BLUE_SHIFT);
-    gss_red[i]         = r[i];
-    gss_green[i]       = g[i];
-    gss_blue[i]        = b[i];
-    gss_red_shifted[i] = gss_red[i] << 16;
     GDBG_INFO(69,": gRamp[%d] = %d\n", i, gRamp[i]);
   }
+  gssSetTables(nEntries, r, g, b);
 
   /* Voodoo5 6000 DAC workaround for 4x, 8xFSAA.
      Since the DAC is shared between 2 chips, the input to gamma look up table
@@ -8505,12 +8550,7 @@ hwcGetGammaTable(hwcBoardInfo *bInfo, FxU32 nEntries, FxU32 *r, FxU32 *g, FxU32 
     }
   }
 
-  for (i = 0; i < 256; i++) {
-    gss_red[i]         = r[i];
-    gss_green[i]       = g[i];
-    gss_blue[i]        = b[i];
-    gss_red_shifted[i] = gss_red[i] << 16;
-  }
+  gssSetTables(256, r, g, b);
 
   return FXTRUE;
   

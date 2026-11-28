@@ -1498,7 +1498,7 @@ GR_EXT_ENTRY(grSstWinOpenExt, GrContext_t, ( FxU32                   hWnd,
     }
     
     resolution =
-      (((FxU32)resolution) > (sizeof(_resTable) / sizeof(ResEntry)))
+      (((FxU32)resolution) >= (sizeof(_resTable) / sizeof(ResEntry)))
         ? GR_RESOLUTION_640x480 
           : resolution;
 
