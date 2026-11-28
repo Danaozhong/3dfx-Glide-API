@@ -430,7 +430,27 @@ static  WidthHeight_t widthHeightByResolution[] = {
   {1856, 1392},               /* GR_RESOLUTION_1856x1392 */
   {1920, 1440},               /* GR_RESOLUTION_1920x1440 */
   {2048, 1536},               /* GR_RESOLUTION_2048x1536 */
-  {2048, 2048}                /* GR_RESOLUTION_2048x2048 */
+  {2048, 2048},               /* GR_RESOLUTION_2048x2048 */
+  {1280, 720},                /* GR_RESOLUTION_1280x720 */
+  {1280, 800},                /* GR_RESOLUTION_1280x800 */
+  {1360, 768},                /* GR_RESOLUTION_1360x768 */
+  {1440, 900},                /* GR_RESOLUTION_1440x900 */
+  {1600, 900},                /* GR_RESOLUTION_1600x900 */
+  {1680, 720},                /* GR_RESOLUTION_1680x720 */
+  {1680, 1050},               /* GR_RESOLUTION_1680x1050 */
+  {1792, 768},                /* GR_RESOLUTION_1792x768 */
+  {1920, 800},                /* GR_RESOLUTION_1920x800 */
+  {1920, 1080},               /* GR_RESOLUTION_1920x1080 */
+  {1920, 1200},               /* GR_RESOLUTION_1920x1200 */
+  {1960, 840},                /* GR_RESOLUTION_1960x840 */
+  {2096, 900},                /* GR_RESOLUTION_2096x900 */
+  {2304, 960},                /* GR_RESOLUTION_2304x960 */
+  {2560, 1080},               /* GR_RESOLUTION_2560x1080 */
+  {768, 480},                 /* GR_RESOLUTION_768x480 */
+  {960, 600},                 /* GR_RESOLUTION_960x600 */
+  {1064, 600},                /* GR_RESOLUTION_1064x600 */
+  {1144, 480},                /* GR_RESOLUTION_1144x480 */
+  {1400, 600}                 /* GR_RESOLUTION_1400x600 */
 };
 
 static FxU32 refresh[] = {

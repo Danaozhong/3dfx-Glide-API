@@ -187,14 +187,15 @@ protected:
     }
   }
 
-  // Opens a 640x480 window with two color buffers and a depth buffer.
-  void openWindow()
+  // Opens a window, 640x480 by default, with two color buffers and a depth
+  // buffer.
+  void openWindow(GrScreenResolution_t resolution = GR_RESOLUTION_640x480)
   {
     window.reset(new TestWindow);
     ASSERT_TRUE(window->valid()) << "could not create the window";
 
     grSstSelect(0);
-    context = grSstWinOpen(window->handle(), GR_RESOLUTION_640x480, GR_REFRESH_60Hz,
+    context = grSstWinOpen(window->handle(), resolution, GR_REFRESH_60Hz,
                            GR_COLORFORMAT_ARGB, GR_ORIGIN_UPPER_LEFT, 2, 1);
     ASSERT_NE(context, static_cast<GrContext_t>(0)) << "grSstWinOpen failed";
   }
@@ -367,6 +368,39 @@ TEST_F(GlideCsim, ClearsTheScreen)
   ASSERT_EQ(image.width(), 640u);
   ASSERT_EQ(image.height(), 480u);
   EXPECT_EQ(image.count(color), 640u * 480u);
+}
+
+// The widescreen resolutions of sst1vid.h, also wider than 2048 pixels.
+TEST_F(GlideCsim, OpensWidescreenResolutions)
+{
+  const struct {
+    GrScreenResolution_t resolution;
+    unsigned int width, height;
+  } modes[] = {
+      {GR_RESOLUTION_1280x720, 1280, 720},
+      {GR_RESOLUTION_1920x1080, 1920, 1080},
+      {GR_RESOLUTION_2560x1080, 2560, 1080},
+      {GR_RESOLUTION_1400x600, 1400, 600},
+  };
+  const GrColor_t color = 0xFF8400FF;
+
+  for (const auto &mode : modes) {
+    SCOPED_TRACE(mode.width);
+    ASSERT_NO_FATAL_FAILURE(openWindow(mode.resolution));
+    grDitherMode(GR_DITHER_DISABLE);
+    grBufferClear(color, 0, 0xFFFF);
+    grBufferSwap(1);
+    grFinish();
+
+    const SwappedImage image(0);
+    ASSERT_TRUE(image.valid());
+    ASSERT_EQ(image.width(), mode.width);
+    ASSERT_EQ(image.height(), mode.height);
+    EXPECT_EQ(image.count(color), mode.width * mode.height);
+
+    EXPECT_TRUE(grSstWinClose(context));
+    context = 0;
+  }
 }
 
 TEST_F(GlideCsim, DrawsGouraudShadedTriangles)

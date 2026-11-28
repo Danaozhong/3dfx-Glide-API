@@ -1123,7 +1123,7 @@ calcBufferSizeInTiles(hwcBoardInfo* bInfo, FxU32 xres, FxU32 yres);
 static FxU32
 calcBufferHeightInTiles(hwcBoardInfo* bInfo, FxU32 yres);
 
-static FxBool resolutionSupported[HWC_MAX_BOARDS][0x20][0x10];
+static FxBool resolutionSupported[HWC_MAX_BOARDS][GR_RESOLUTION_MAX + 1][0x10];
 
 /* 
 ** DOS-only stuff for multi-chip boards.
@@ -8684,7 +8684,27 @@ hwcResolutionSupported(hwcBoardInfo *bInfo, GrScreenResolution_t res, GrScreenRe
     "GR_RESOLUTION_1856x1392",
     "GR_RESOLUTION_1920x1440",
     "GR_RESOLUTION_2048x1536",
-    "GR_RESOLUTION_2048x2048"
+    "GR_RESOLUTION_2048x2048",
+    "GR_RESOLUTION_1280x720",
+    "GR_RESOLUTION_1280x800",
+    "GR_RESOLUTION_1360x768",
+    "GR_RESOLUTION_1440x900",
+    "GR_RESOLUTION_1600x900",
+    "GR_RESOLUTION_1680x720",
+    "GR_RESOLUTION_1680x1050",
+    "GR_RESOLUTION_1792x768",
+    "GR_RESOLUTION_1920x800",
+    "GR_RESOLUTION_1920x1080",
+    "GR_RESOLUTION_1920x1200",
+    "GR_RESOLUTION_1960x840",
+    "GR_RESOLUTION_2096x900",
+    "GR_RESOLUTION_2304x960",
+    "GR_RESOLUTION_2560x1080",
+    "GR_RESOLUTION_768x480",
+    "GR_RESOLUTION_960x600",
+    "GR_RESOLUTION_1064x600",
+    "GR_RESOLUTION_1144x480",
+    "GR_RESOLUTION_1400x600"
   };
 #endif
 #if 0
