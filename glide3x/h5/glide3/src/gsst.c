@@ -874,7 +874,27 @@ _resTable[] = {
   {GR_RESOLUTION_1856x1392, 1856,  1392}, /* 0x14 */
   {GR_RESOLUTION_1920x1440, 1920,  1440}, /* 0x15 */
   {GR_RESOLUTION_2048x1536, 2048,  1536}, /* 0x16 */
-  {GR_RESOLUTION_2048x2048, 2048,  2048}  /* 0x17 */
+  {GR_RESOLUTION_2048x2048, 2048,  2048}, /* 0x17 */
+  {GR_RESOLUTION_1280x720,  1280,  720},  /* 0x18 */
+  {GR_RESOLUTION_1280x800,  1280,  800},  /* 0x19 */
+  {GR_RESOLUTION_1360x768,  1360,  768},  /* 0x1A */
+  {GR_RESOLUTION_1440x900,  1440,  900},  /* 0x1B */
+  {GR_RESOLUTION_1600x900,  1600,  900},  /* 0x1C */
+  {GR_RESOLUTION_1680x720,  1680,  720},  /* 0x1D */
+  {GR_RESOLUTION_1680x1050, 1680,  1050}, /* 0x1E */
+  {GR_RESOLUTION_1792x768,  1792,  768},  /* 0x1F */
+  {GR_RESOLUTION_1920x800,  1920,  800},  /* 0x20 */
+  {GR_RESOLUTION_1920x1080, 1920,  1080}, /* 0x21 */
+  {GR_RESOLUTION_1920x1200, 1920,  1200}, /* 0x22 */
+  {GR_RESOLUTION_1960x840,  1960,  840},  /* 0x23 */
+  {GR_RESOLUTION_2096x900,  2096,  900},  /* 0x24 */
+  {GR_RESOLUTION_2304x960,  2304,  960},  /* 0x25 */
+  {GR_RESOLUTION_2560x1080, 2560,  1080}, /* 0x26 */
+  {GR_RESOLUTION_768x480,   768,   480},  /* 0x27 */
+  {GR_RESOLUTION_960x600,   960,   600},  /* 0x28 */
+  {GR_RESOLUTION_1064x600,  1064,  600},  /* 0x29 */
+  {GR_RESOLUTION_1144x480,  1144,  480},  /* 0x2A */
+  {GR_RESOLUTION_1400x600,  1400,  600}   /* 0x2B */
 };
 
 /* ---------------------------------------------
@@ -2044,6 +2064,7 @@ GR_EXT_ENTRY(grSstWinOpenExt, GrContext_t, ( FxU32                   hWnd,
              gc->do2ppc = FXTRUE;
              break;
           case GR_RESOLUTION_1600x1200:
+          case GR_RESOLUTION_1920x1200:
              break;
           case GR_RESOLUTION_1792x1344:
           case GR_RESOLUTION_1856x1392:
@@ -2073,6 +2094,29 @@ GR_EXT_ENTRY(grSstWinOpenExt, GrContext_t, ( FxU32                   hWnd,
         {
           case GR_RESOLUTION_1600x1024:
             gc->bInfo->h3analogSli = 1 ;
+            gc->do2ppc = FXTRUE;
+            break;
+          /* Widescreen resolutions, 2ppc avoids pink lines with SLI. Tested
+           * by NejcDolicanin/3dfx_glide_sourceforge, 1920x1200 without. */
+          case GR_RESOLUTION_1280x720:
+          case GR_RESOLUTION_1280x800:
+          case GR_RESOLUTION_1360x768:
+          case GR_RESOLUTION_1440x900:
+          case GR_RESOLUTION_1600x900:
+          case GR_RESOLUTION_1680x720:
+          case GR_RESOLUTION_1680x1050:
+          case GR_RESOLUTION_1792x768:
+          case GR_RESOLUTION_1920x800:
+          case GR_RESOLUTION_1920x1080:
+          case GR_RESOLUTION_1960x840:
+          case GR_RESOLUTION_2096x900:
+          case GR_RESOLUTION_2304x960:
+          case GR_RESOLUTION_2560x1080:
+          case GR_RESOLUTION_768x480:
+          case GR_RESOLUTION_960x600:
+          case GR_RESOLUTION_1064x600:
+          case GR_RESOLUTION_1144x480:
+          case GR_RESOLUTION_1400x600:
             gc->do2ppc = FXTRUE;
             break;
           case GR_RESOLUTION_1600x1200:

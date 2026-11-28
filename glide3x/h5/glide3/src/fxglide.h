@@ -576,7 +576,7 @@
  */
 #define GR_TEXFMT_P_8_RGBA           GR_TEXFMT_RSVD0
 
-#define GR_MAX_RESOLUTION   0x17
+#define GR_MAX_RESOLUTION   GR_RESOLUTION_MAX
 #define GR_MAX_REFRESH      8
 #define GR_MAX_COLOR_BUF    3
 #define GR_MAX_AUX_BUF      1

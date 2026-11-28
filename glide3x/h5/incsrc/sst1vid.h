@@ -129,6 +129,28 @@ typedef FxI32 GrScreenResolution_t;
 #define GR_RESOLUTION_1920x1440 0x15
 #define GR_RESOLUTION_2048x1536 0x16
 #define GR_RESOLUTION_2048x2048 0x17
+/* Widescreen resolutions, not part of the 3dfx Glide API. The values are
+ * those of NejcDolicanin/3dfx_glide_sourceforge, new ones are appended. */
+#define GR_RESOLUTION_1280x720  0x18    /* 16:9 */
+#define GR_RESOLUTION_1280x800  0x19    /* 16:10 */
+#define GR_RESOLUTION_1360x768  0x1A    /* 16:9 */
+#define GR_RESOLUTION_1440x900  0x1B    /* 16:10 */
+#define GR_RESOLUTION_1600x900  0x1C    /* 16:9 */
+#define GR_RESOLUTION_1680x720  0x1D    /* 21:9 */
+#define GR_RESOLUTION_1680x1050 0x1E    /* 16:10 */
+#define GR_RESOLUTION_1792x768  0x1F    /* 21:9 */
+#define GR_RESOLUTION_1920x800  0x20    /* 21:9 */
+#define GR_RESOLUTION_1920x1080 0x21    /* 16:9 */
+#define GR_RESOLUTION_1920x1200 0x22    /* 16:10 */
+#define GR_RESOLUTION_1960x840  0x23    /* 21:9 */
+#define GR_RESOLUTION_2096x900  0x24    /* 21:9 */
+#define GR_RESOLUTION_2304x960  0x25    /* 21:9 */
+#define GR_RESOLUTION_2560x1080 0x26    /* 21:9 */
+#define GR_RESOLUTION_768x480   0x27    /* 16:10 */
+#define GR_RESOLUTION_960x600   0x28    /* 16:10 */
+#define GR_RESOLUTION_1064x600  0x29    /* 16:9 */
+#define GR_RESOLUTION_1144x480  0x2A    /* 21:9 */
+#define GR_RESOLUTION_1400x600  0x2B    /* 21:9 */
 #define GR_RESOLUTION_NONE      0xff
 
 #ifdef GR_RESOLUTION_MAX
@@ -138,7 +160,7 @@ typedef FxI32 GrScreenResolution_t;
 #undef GR_RESOLUTION_MIN
 #endif
 #define GR_RESOLUTION_MIN       GR_RESOLUTION_320x200
-#define GR_RESOLUTION_MAX       GR_RESOLUTION_2048x2048
+#define GR_RESOLUTION_MAX       GR_RESOLUTION_1400x600
 
 #ifdef __cplusplus
 }
