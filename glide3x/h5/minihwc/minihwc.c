@@ -4322,8 +4322,11 @@ hwcInitVideo(hwcBoardInfo *bInfo, FxBool tiled, FxVideoTimingInfo *vidTiming,
          return FXFALSE;        
    }
 
+   /* The fetch size field has 13 bits. Bit 13 of the line size, needed from
+    * 2048 pixels at 32 bpp, is in vidDesktopOverlayStride, see below. */
    HWC_IO_STORE(bInfo->regInfo, vidOverlayDudxOffsetSrcWidth,
-                ((bInfo->vidInfo.xRes << pixelShift) << 19));
+                (((bInfo->vidInfo.xRes << pixelShift) << SST_OVERLAY_FETCH_SIZE_SHIFT) &
+                 SST_OVERLAY_FETCH_SIZE));
 
    /* Video pixel buffer threshold */
    {
@@ -4679,7 +4682,9 @@ hwcInitVideo(hwcBoardInfo *bInfo, FxBool tiled, FxVideoTimingInfo *vidTiming,
 
   HWC_IO_STORE( bInfo->regInfo, vidDesktopOverlayStride,
                 ( bInfo->buffInfo.bufStrideInTiles << 16 ) |
-                  bInfo->buffInfo.bufStrideInTiles );
+                  bInfo->buffInfo.bufStrideInTiles |
+                ( ( ( bInfo->vidInfo.xRes << pixelShift ) & SST_OVERLAY_OVERFLOW_DUDX_BIT )
+                  << SST_OVERLAY_OVERFLOW_RELATIVE_SHIFT ) );
 
   /* initialize pci registers */
 #ifdef FX_GLIDE_NAPALM
