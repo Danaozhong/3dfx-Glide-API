@@ -2760,11 +2760,12 @@ getThreadValueFast(void) {
 static __inline AnyPtr getThreadValueFast (void)
 {
  AnyPtr t;
- __asm __volatile (" \
-       mov %%fs:(%0), %%eax; \
-       add %1, %%eax; \
-       mov (%%eax), %%eax; \
- ":"=a"(t):"i"(WNT_TEB_PTR), "g"(_GlideRoot.tlsOffset));
+ /* t = *(TEB + tlsOffset). %0 is t, so the TEB pointer is %c1, without the $
+  * of an immediate. */
+ __asm __volatile ("movl %%fs:%c1, %0\n\t"
+                   "addl %2, %0\n\t"
+                   "movl (%0), %0"
+                   : "=&r"(t) : "i"(WNT_TEB_PTR), "g"(_GlideRoot.tlsOffset) : "memory");
  return t;
 }
 
