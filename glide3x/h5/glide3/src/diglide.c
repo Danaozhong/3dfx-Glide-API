@@ -319,7 +319,7 @@ GR_DIENTRY(grHints, void, (GrHint_t hintType, FxU32 hints))
     gc->state.checkFifo = hints;
     break;
 
-#if GL_X86
+#if GL_X86 && defined(GR_HINT_FPUPRECISION)
   case GR_HINT_FPUPRECISION:
     hints ? double_precision_asm() : single_precision_asm();
     break;

@@ -41,10 +41,26 @@ set(GLIDE_SOURCES
 
 
 
-set(GLIDE_SOURCES ${GLIDE_SOURCES} 
-    # We always use the C routines for drawing triangles, never the asm or 3dnow ones
-    ${GLIDE_H5_DIR}/glide3/src/gxdraw.c
-)
+# The 32-bit Windows DLL uses the x86 assembler routines for the triangle setup,
+# vertex lists and texture downloads, like the original 3dfx DLL. The variants
+# for 3DNow!, MMX, SSE and SSE2 are picked at runtime from the CPU features.
+# Everywhere else the C routines are used.
+if(WIN32 AND BUILD_32BIT AND NOT MSVC AND NOT BUILD_HAL_CSIM)
+    set(GLIDE_X86_ASM_DEFAULT ON)
+else()
+    set(GLIDE_X86_ASM_DEFAULT OFF)
+endif()
+option(GLIDE_X86_ASM "Use the x86 assembler routines of Glide (32-bit MinGW only)" ${GLIDE_X86_ASM_DEFAULT})
+
+if(GLIDE_X86_ASM)
+    set(GLIDE_SOURCES ${GLIDE_SOURCES}
+        ${GLIDE_H5_DIR}/glide3/src/cpuid.c
+    )
+else()
+    set(GLIDE_SOURCES ${GLIDE_SOURCES}
+        ${GLIDE_H5_DIR}/glide3/src/gxdraw.c
+    )
+endif()
 
 # platform specific compile files
 if(WIN32)
@@ -130,18 +146,24 @@ target_compile_definitions(glide_config INTERFACE
     # other 
     -DGLIDE_PLUG
     -DGLIDE_SPLASH
-
-    # Use MMX
-    #-DGL_MMX
-    #-DGL_SSE
-    #-DGL_SSE2
-    #-DGL_X86
-
-    # Do not use the ASM routines, but the C triangle setup routines instead.
-    # GL_X86 would additionally require the CPU detection and FPU precision
-    # routines from cpudtect.asm.
-    -DGLIDE_USE_C_TRISETUP
 )
+
+if(GLIDE_X86_ASM)
+    # Each assembler source is built once per variant, selected by only one
+    # of these defines (see glide_x86_asm_variant below).
+    set(not_asm $<NOT:$<COMPILE_LANGUAGE:ASM_NASM>>)
+    target_compile_definitions(glide_config INTERFACE
+        $<${not_asm}:GL_X86>
+        $<${not_asm}:GL_AMD3D>
+        $<${not_asm}:GL_MMX>
+        $<${not_asm}:GL_SSE>
+        $<${not_asm}:GL_SSE2>
+    )
+else()
+    target_compile_definitions(glide_config INTERFACE
+        -DGLIDE_USE_C_TRISETUP
+    )
+endif()
 
 
 if (NOT ${BUILD_32BIT})
@@ -237,6 +259,47 @@ else()
     target_compile_definitions(glide_config INTERFACE
         _NASM_BUILD_FOR_LINUX
     )
+endif()
+
+if(GLIDE_X86_ASM)
+    # glide_x86_asm_variant(<output variable> <source> <variant> [<define>])
+    # Assembles glide3/src/<source>.asm with <define>, through a wrapper in
+    # the build directory, as one source can only be built once per target.
+    function(glide_x86_asm_variant out source variant)
+        set(wrapper ${GENERATED_DIR}/${source}_${variant}.asm)
+        set(content "")
+        if(ARGC GREATER 3)
+            set(content "%define ${ARGV3} 1\n")
+        endif()
+        string(APPEND content "%include \"${source}.asm\"\n")
+        set(old_content "")
+        if(EXISTS ${wrapper})
+            file(READ ${wrapper} old_content)
+        endif()
+        if(NOT old_content STREQUAL content)
+            file(WRITE ${wrapper} "${content}")
+        endif()
+        set(src ${GLIDE_H5_DIR}/glide3/src)
+        set_source_files_properties(${wrapper} PROPERTIES
+            # MinGW prefixes C symbols with an underscore.
+            COMPILE_OPTIONS "--prefix;_"
+            OBJECT_DEPENDS "${src}/${source}.asm;${src}/xos.inc;${src}/xdraw2.inc")
+        set(${out} ${wrapper} PARENT_SCOPE)
+    endfunction()
+
+    foreach(variant
+            "xdraw2;def" "xdraw3;def"
+            "xdraw2;3dnow;GL_AMD3D" "xdraw3;3dnow;GL_AMD3D" "xtexdl;3dnow;GL_AMD3D"
+            "xtexdl;mmx;GL_MMX"
+            "xdraw2;sse;GL_SSE" "xdraw3;sse;GL_SSE"
+            "xtexdl;sse2;GL_SSE2")
+        glide_x86_asm_variant(wrapper ${variant})
+        list(APPEND GLIDE_ASM_SOURCES ${wrapper})
+    endforeach()
+
+    # grDrawTriangle, gdraw.c has it in C for debug builds.
+    glide_x86_asm_variant(wrapper xdrawtri mingw __MINGW32__)
+    list(APPEND GLIDE_ASM_SOURCES $<$<NOT:$<CONFIG:Debug>>:${wrapper}>)
 endif()
 
 glide_add_fxgasm_headers(fxgasm_headers

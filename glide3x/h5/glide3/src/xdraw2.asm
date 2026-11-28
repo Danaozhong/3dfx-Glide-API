@@ -434,10 +434,10 @@ endp
     ;; If debugging make sure that we're in clip coordinates
 %IFDEF GLIDE_DEBUG
     test    dword [gc + CoordinateSpace], 1
-    jnz     __clipSpace
+    jnz     .__clipSpace
     xor     eax, eax
     mov     [eax], eax
-__clipSpace:    
+.__clipSpace:    
 %ENDIF ; GLIDE_DEBUG
 
     invoke  procPtr, 1, 3, vPtr ; (*gc->curArchProcs.drawTrianglesProc)(grDrawVertexArray, 3, vPtr)

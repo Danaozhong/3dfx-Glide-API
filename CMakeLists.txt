@@ -71,11 +71,11 @@ else()
 endif()
 
 
-set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> \
+set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> <DEFINES> \
     <FLAGS> -DGLIDE_PACKED_RGB ${CMAKE_ASM_NASM_DEFINITIONS} -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} -o <OBJECT> <SOURCE>")
 
-# Only the 32-bit Windows build has assembly sources (win9x.asm), elsewhere
-# NASM is not needed, e.g. on ARM.
+# Only the 32-bit Windows build has assembly sources (win9x.asm and the
+# triangle routines), elsewhere NASM is not needed, e.g. on ARM.
 if(WIN32 AND BUILD_32BIT)
     enable_language(ASM_NASM)
 endif()
